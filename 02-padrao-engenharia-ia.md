@@ -211,118 +211,21 @@ Para garantir que nenhum desenvolvedor do Labs atinja o teto semanal de cotas e 
 ### 6.1. Template Canônico de Contrato (`.labs/spec.md`)
 O Opus em modo headless deve obrigatoriamente preencher este template sem adicionar conversação ou preâmbulos:
 
-```markdown
-# LABS TASK SPECIFICATION: {{NOME_DA_TAREFA}}
-
-**Data:** {{DATA_ISO}}  
-**Autor Arquitetural:** Claude Opus (Headless Session)  
-**Status do Contrato:** FECHADO / IMUTÁVEL  
-
----
-
-## 1. Escopo Físico Estrito (Filesystem Fencing)
-*Regra Dura:* Qualquer modificação em arquivo fora desta lista resulta em rejeição automática do PR.
-- **Arquivos com permissão de escrita:**
-  - `{{CAMINHO_ARQUIVO_1}}`
-  - `{{CAMINHO_TESTE_1}}`
-- **Arquivos de consulta apenas-leitura (LSP/Tipos):**
-  - `{{CAMINHO_CONTRATO_PROTO_OU_INTERFACE}}`
-
----
-
-## 2. Contrato de Assinaturas & Tipagens (LSP Delta)
-Substituição cirúrgica exigida. Proibido alterar assinaturas públicas não listadas aqui.
-
-### Assinatura Atual (Antes)
-\`\`\`{{LINGUAGEM}}
-// Assinatura extraída via LSP
-\`\`\`
-
-### Assinatura Alvo (Depois)
-\`\`\`{{LINGUAGEM}}
-// Assinatura exata esperada pelo design
-\`\`\`
-
----
-
-## 3. Invariantes Invioláveis de Negócio & Segurança
-1. **Invariante 1:** (ex.: Transações financeiras exigem idempotência estrita no PostgreSQL Blackboard).
-2. **Invariante 2:** (ex.: Tratamento de erro sem panic; propagação explícita com contexto de erro).
-3. **Invariante 3:** (ex.: Proibido adicionar goroutines desgovernadas sem context cancellation).
-
----
-
-## 4. Non-Goals (O Que o Worker ESTÁ PROIBIDO de Fazer)
-- ❌ Proibido refatorar funções vizinhas ou "limpar código" fora do escopo.
-- ❌ Proibido adicionar novas dependências no manifesto de pacotes (`go.mod`, `package.json`).
-- ❌ Proibido reescrever a suíte de testes existente; apenas estender com o caso novo.
-
----
-
-## 5. Juiz Compilador (Comando Determinístico de Validação)
-O worker deve rodar este comando exato antes de dar a tarefa como encerrada:
-\`\`\`bash
-rtk {{COMANDO_DE_TESTE_OU_BUILD}}
-\`\`\`
-*Critério de Sucesso:* \`exit code == 0\` sem supressão de flags de erro.
-```
+Fonte única: [`templates/spec.md`](./templates/spec.md). O `bin/labs-ai-task` injeta este arquivo no prompt do Opus; editar o template muda o contrato de todas as tarefas seguintes.
 
 ---
 
 ### 6.2. O Orquestrador Local (`bin/labs-ai-task`)
-Para eliminar o atrito cognitivo e garantir que nenhum desenvolvedor precise orquestrar o processo manualmente, os repositórios do Labs utilizam o script `bin/labs-ai-task`:
+Para eliminar o atrito cognitivo e garantir que nenhum desenvolvedor precise orquestrar o processo manualmente, o Labs utiliza o script `bin/labs-ai-task`:
+
+Fonte única: [`bin/labs-ai-task`](./bin/labs-ai-task). Roda de dentro do repositório-alvo; o script lê o template de [`templates/spec.md`](./templates/spec.md) no próprio `labs-standards`, então não é copiado para cada repo.
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-TASK_NAME="${1:-}"
-TARGET_PATH="${2:-}"
-
-if [[ -z "$TASK_NAME" || -z "$TARGET_PATH" ]]; then
-    echo "Uso: bin/labs-ai-task <nome-da-tarefa> <caminho-alvo>"
-    exit 1
-fi
-
-SLUG=$(echo "$TASK_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-BRANCH="labs/${SLUG}"
-WT_DIR="../wt-${SLUG}"
-
-# 1. Isolamento Físico de Worktree
-echo "==> [Camada 1] Criando worktree isolado em $WT_DIR..."
-git worktree add -b "$BRANCH" "$WT_DIR" HEAD
-mkdir -p "$WT_DIR/.labs"
-
-# 2. Planejamento Headless (Opus)
-echo "==> [Camada 2] Disparando Opus Headless para emitir .labs/spec.md..."
-PROMPT="Você é o Arquiteto Frontier do Labs. Analise $TARGET_PATH e preencha rigorosamente o template .labs/spec.md para a tarefa: '$TASK_NAME'. Sem preâmbulos."
-
-claude -p --model opus "$PROMPT" > "$WT_DIR/.labs/spec.md"
-
-# 3. Disparo do Worker Efêmero (Sonnet)
-echo "==> [Camada 3] Contrato firmado. Iniciando sessão de execução com Sonnet..."
-(
-    cd "$WT_DIR"
-    claude --model sonnet \
-      --append-system-prompt "Você é o Worker de Implementação. Siga estritamente .labs/spec.md. Aplique a Escada Ponytail (menor diff funcional). Finalize validando com o Juiz Compilador."
-)
-
-# 4. Verificação Final pós-sessão
-echo "==> [Camada 4] Executando validação de saída..."
-(
-    cd "$WT_DIR"
-    SPEC_CMD=$(sed -n '/Juiz Compilador/,$p' .labs/spec.md | grep -m1 '^rtk ' || echo "rtk git status")
-    # Comando vem de saída de LLM: nada de eval. Só `rtk ...`, sem metacaracteres de shell,
-    # executado como lista de argumentos.
-    if [[ "$SPEC_CMD" =~ [\;\&\|\`\$\<\>\(\)] ]]; then
-        echo "  [FAIL] Comando do spec recusado (metacaractere de shell): $SPEC_CMD"
-        exit 1
-    fi
-    read -ra ARGS <<< "$SPEC_CMD"
-    echo "  -> ${ARGS[*]}"
-    "${ARGS[@]}"
-)
+cd ~/LABS/meu-repo
+~/LABS/labs-standards/bin/labs-ai-task "nome da tarefa" caminho/alvo
 ```
+
+O comando de validação da seção 5 do spec é saída de LLM: o script só executa linhas `rtk ...` sem metacaracteres de shell (`; & | $ ` etc.), como lista de argumentos, nunca via `eval`.
 
 ---
 
@@ -378,44 +281,12 @@ Todo ambiente de desenvolvimento no Labs deve ser provisionado em menos de 3 min
    * Verificação do hook `PreToolUse` para reescrita transparente de `run_command`.
 
 ### 8.2. O Verificador de Ambiente: `bin/labs-ai-doctor`
-Todo repositório Labs disponibiliza o utilitário de diagnóstico para assegurar que a estação não possui vazamento de contexto:
+O utilitário de diagnóstico é por estação, não por repositório, e assegura que a estação não possui vazamento de contexto:
+
+Fonte única: [`bin/labs-ai-doctor`](./bin/labs-ai-doctor). Checa RTK, hook PreToolUse, persistência forçada, Sub-Agent Pinning, plugins obrigatórios (`superpowers`, `ponytail`, `caveman`, `gopls-lsp`), plugin RTK e Doutrina Ponytail no Antigravity/Gemini. Sai com `exit 1` só em falha crítica.
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-echo "==> [Labs AI Doctor] Diagnosticando conformidade da estação..."
-
-# 1. Checa RTK
-if command -v rtk >/dev/null 2>&1; then
-    echo "  [OK] Binário RTK presente: $(rtk --version)"
-else
-    echo "  [FAIL] RTK não encontrado no PATH. Instale via cargo/brew."
-    exit 1
-fi
-
-# 2. Checa Hook do Claude
-if grep -q "rtk hook claude" "$HOME/.claude/settings.json" 2>/dev/null; then
-    echo "  [OK] Hook PreToolUse do Claude Code ativo."
-else
-    echo "  [WARN] Hook do RTK ausente em ~/.claude/settings.json."
-fi
-
-# 3. Checa Plugin RTK no Antigravity
-if [ -f "$HOME/.gemini/config/plugins/rtk/plugin.json" ]; then
-    echo "  [OK] Plugin nativo RTK ativo no Antigravity."
-else
-    echo "  [WARN] Plugin RTK não instalado em ~/.gemini/config/plugins/rtk."
-fi
-
-# 4. Checa Persistência Cega
-if grep -q '"CLAUDE_CODE_FORCE_SESSION_PERSISTENCE": "1"' "$HOME/.claude/settings.json" 2>/dev/null; then
-    echo "  [ALERT] Persistência forçada ativa! Risco crítico de estouro de cota no Claude Max."
-else
-    echo "  [OK] Persistência forçada desativada (sessões efêmeras por padrão)."
-fi
-
-echo "==> Diagnóstico concluído."
+~/LABS/labs-standards/bin/labs-ai-doctor
 ```
 
 ---

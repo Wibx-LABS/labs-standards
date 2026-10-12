@@ -9,6 +9,12 @@ if [[ -z "$TASK_NAME" || -z "$TARGET_PATH" ]]; then
     exit 1
 fi
 
+TEMPLATE="$(dirname "$(readlink -f "$0")")/../templates/spec.md"
+if [[ ! -f "$TEMPLATE" ]]; then
+    echo "Template não encontrado: $TEMPLATE"
+    exit 1
+fi
+
 SLUG=$(echo "$TASK_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
 BRANCH="labs/${SLUG}"
 WT_DIR="../wt-${SLUG}"
@@ -20,7 +26,9 @@ mkdir -p "$WT_DIR/.labs"
 
 # 2. Planejamento Headless (Opus)
 echo "==> [Camada 2] Disparando Opus Headless para emitir .labs/spec.md..."
-PROMPT="Você é o Arquiteto Frontier do Labs. Analise $TARGET_PATH e preencha rigorosamente o template .labs/spec.md para a tarefa: '$TASK_NAME'. Sem preâmbulos."
+PROMPT="Você é o Arquiteto Frontier do Labs. Analise $TARGET_PATH e preencha rigorosamente o template abaixo para a tarefa: '$TASK_NAME'. Responda apenas com o template preenchido, sem preâmbulos. A seção 5 deve conter uma única linha de comando começando com 'rtk '.
+
+$(cat "$TEMPLATE")"
 
 claude -p --model opus "$PROMPT" > "$WT_DIR/.labs/spec.md"
 

@@ -18,9 +18,14 @@ Este repositório é a fonte única da verdade para arquitetura de software, Dev
 
 * **[`bin/labs-ai-doctor`](./bin/labs-ai-doctor):** Healthcheck automático para validar se a estação local de trabalho está em conformidade com os hooks do RTK, plugins do Antigravity e configurações seguras de sessão.
 
+* **[`bin/labs-ai-task`](./bin/labs-ai-task):** Orquestrador das 4 camadas (worktree → spec headless no Opus → worker Sonnet → Juiz Compilador). Roda de dentro do repositório-alvo; usa o contrato de [`templates/spec.md`](./templates/spec.md).
+
 ```bash
 # Diagnosticar ambiente local:
 ./bin/labs-ai-doctor
+
+# Executar uma tarefa em outro repositório:
+cd ~/LABS/meu-repo && ~/LABS/labs-standards/bin/labs-ai-task "nome da tarefa" caminho/alvo
 ```
 
 ---
