@@ -1,5 +1,5 @@
 # WIBX LABS — OPERATING CHARTER
-**Version 1.0 · Governing ruleset · Machine-readable**
+**Version 1.1 · Governing ruleset · Machine-readable**
 
 > **What this file is.** The governing ruleset for WibX Labs. It states rules; it does not argue for them. Every rule here is binding on Labs, on Labs' agents, automations, and projects.
 >
@@ -40,7 +40,9 @@
 
 ---
 
+## §3 — *Void (v1.1). Removed.*
 
+---
 
 ## §4 — Unit of Work
 
@@ -72,7 +74,7 @@
 
 **5.2 Modules.** There are exactly two scoring modules, one per primitive: **Autonomy** and **Scalability**.
 
-**5.3** A department **loads** the module matching its assigned primitive (§3.3). The module is never selected by discretion, and no weight is chosen during an evaluation.
+**5.3** A department **loads** the module matching its assigned primitive. The module is never selected by discretion, and no weight is chosen during an evaluation.
 
 **5.4** Criteria — three, and only three:
 
@@ -84,11 +86,13 @@
 
 **5.5** **Effort is not a criterion.** The three criteria score value only. Effort is a **sequencing input**: among requests already judged worth doing, effort orders the queue. Effort never raises or lowers a score. *Rationale retained: value and cost in one sum lets a cheap trivial request outrank an expensive critical one.*
 
-**5.6 Scoring standard.** A score is a **measured delta**, never a rating. The score is how far the request is projected to move that department's unit (§3.3) against its captured baseline.
+**5.6 Scoring standard.** A score is a **measured delta**, never a rating. The score is how far the request is projected to move that department's unit against its captured baseline.
 
 **5.7** **No baseline, no score.** This is the same gate as §6.1.
 
 **5.8** **Weight values are not yet set.** Until they are set by §11 amendment, no numeric score may be produced or reported. Requests are ordered by explicit comparison against §5.4, and any ordering so produced is marked **provisional**.
+
+**5.8.1** While §5.8 holds, §5.2–5.3, §5.6 and §5.9–5.11 are dormant: they bind from the amendment that sets the weights.
 
 **5.9** Weights, once set, are fixed and versioned. They are unchangeable inside an evaluation.
 
@@ -142,7 +146,7 @@
 
 **7.4** A second failure is diagnostic information: the pathology was misidentified, or the department was never the correct owner. It is not a request for further help.
 
-**7.5** On termination, the artifact routes to IT as production code (§9.3) or is decommissioned.
+**7.5** On termination, the artifact routes to IT as production code or is decommissioned.
 
 **7.6** The original pathology returns to the register as unresolved and **re-enters through §5 as a new candidate**, scored against the current field, and may lose.
 
@@ -150,11 +154,11 @@
 
 ## §8 — Execution Model
 
-**8.1** The execution model is named **Blitzkrieg** and its logic is: concentration of force at a single point rather than dispersal across a front, speed of penetration, and refusal to settle into attrition.
+**8.1** The execution model is concentration of force at a single point rather than dispersal across a front, speed of penetration, and refusal to settle into attrition.
 
 **8.2** Applied: few departments in flight at once, decisive intervention rather than sustained presence, extraction at Handoff, never entrenched. Labs' failure mode is not losing — it is getting stuck.
 
-**8.3** **The name "Blitzkrieg" is internal to Labs and is never used in department-facing or company-facing communication.** The term is German and carries Wehrmacht doctrine; delivered to a department head before its logic is explained, it reads as war waged against them, which breaches §10.1 in a single word.
+**8.3** *Void (v1.1). The execution model carries no name.*
 
 **8.4 Embedded Liaison.** Labs does not operate externally. Members embed inside the target department, observe workflow directly, and translate findings into systemic fixes. Communication between embeds is itself an observation target.
 
@@ -168,7 +172,9 @@
 
 ---
 
+## §9 — *Void (v1.1). Removed.*
 
+---
 
 ## §10 — Hard Limits
 
@@ -180,9 +186,15 @@
 
 **10.4** Labs does not replicate existing infrastructure. Where a tool exists and is underused, the intervention is discipline, not a rebuild.
 
+**10.5** *Void (v1.1).*
+
+**10.6** *Void (v1.1).*
+
 **10.7** The charter is headcount-agnostic. It defines principles, not resource math, and holds at two people and at ten. Current capacity is an operating reality that constrains scheduling and is **never encoded as a decision rule.**
 
-**10.9** The charter governs the organization, not a list. The register (§3.3) is the current map, not the scope.
+**10.8** *Void (v1.1).*
+
+**10.9** The charter governs the organization, not a list. The register is the current map, not the scope.
 
 ---
 
