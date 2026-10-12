@@ -14,7 +14,9 @@ Este repositório é a fonte única da verdade para arquitetura de software, Dev
 
 ---
 
-## Utilitários de Linha de Comando
+## Utilitários e Templates
+
+* **[`templates/`](./templates/):** Dockerfiles de referência para Go e Node/TypeScript (Norma 01, §3.3).
 
 * **[`bin/labs-ai-doctor`](./bin/labs-ai-doctor):** Healthcheck automático para validar se a estação local de trabalho está em conformidade com os hooks do RTK, plugins do Antigravity e configurações seguras de sessão.
 
