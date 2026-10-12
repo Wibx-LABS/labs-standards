@@ -101,6 +101,8 @@ docker compose -f compose.yml -f <env>/override.yaml -f <env>/release.yaml confi
 
 ### 4.4. Promoção
 Nenhum workflow tem escrita direta na `main` de repositórios de ambiente.
+
+Implementação de referência: [`wibx-maestro/environments`](https://github.com/wibx-maestro/environments) (`bin/resolve`, `checa`, `gate`, `aplica`, `vigia-runner`). Ela ainda usa `bin/prova` e `bin/autoriza`; a troca pelos recursos nativos de §4.3 e §4.4 está pendente.
 1. **Resolução (`bin/resolve`):** imagens candidatas viram digests e CalVer em `qa/release.yaml`.
 2. **PR humano:** revisão e checks (`bin/checa`). `CODEOWNERS` cobre os manifestos de ambiente.
 3. **Pré-voo (`para=ensaio`):** `bin/gate` sobe o cluster efêmero, roda migrações e testa `/healthz`. Falha aborta sem tocar QA.
