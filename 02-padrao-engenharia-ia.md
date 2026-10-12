@@ -311,8 +311,16 @@ echo "==> [Camada 3] Contrato firmado. Iniciando sessão de execução com Sonne
 echo "==> [Camada 4] Executando validação de saída..."
 (
     cd "$WT_DIR"
-    SPEC_CMD=$(grep -A 2 "Juiz Compilador" .labs/spec.md | grep "rtk" | head -n1 || echo "rtk git status")
-    eval "$SPEC_CMD"
+    SPEC_CMD=$(sed -n '/Juiz Compilador/,$p' .labs/spec.md | grep -m1 '^rtk ' || echo "rtk git status")
+    # Comando vem de saída de LLM: nada de eval. Só `rtk ...`, sem metacaracteres de shell,
+    # executado como lista de argumentos.
+    if [[ "$SPEC_CMD" =~ [\;\&\|\`\$\<\>\(\)] ]]; then
+        echo "  [FAIL] Comando do spec recusado (metacaractere de shell): $SPEC_CMD"
+        exit 1
+    fi
+    read -ra ARGS <<< "$SPEC_CMD"
+    echo "  -> ${ARGS[*]}"
+    "${ARGS[@]}"
 )
 ```
 
@@ -332,7 +340,7 @@ Para iniciativas amplas que envolvem brainstorming, planos arquiteturais extenso
    * O coordenador recebe um recibo de duas linhas (`Tarefa 2 concluída no commit abc123`), marca `[x]` no plano e despacha a Tarefa 3 automaticamente, sem interrupções e sem intervenção humana [Certain].
 3. **Trava de Modelo (Sub-Agent Pinning):**
    * O Coordenador pode operar no modelo Frontier (Opus) para maximizar o raciocínio estratégico.
-   * Os subagentes de implementação são **rigorosamente travados no Sonnet** (`claude-sonnet-5`), garantindo que 90% da volumetria de escrita de código seja faturada a preço de worker [Certain].
+   * Os subagentes de implementação são **rigorosamente travados no Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=sonnet`, alias que acompanha a versão corrente), garantindo que 90% da volumetria de escrita de código seja faturada a preço de worker [Certain].
 
 ---
 
@@ -362,9 +370,9 @@ Todo ambiente de desenvolvimento no Labs deve ser provisionado em menos de 3 min
    ```
 2. **Configuração Global do Claude Code (`~/.claude/settings.json`):**
    * PreToolUse Hook apontando para `rtk hook claude`.
-   * Subagent Pinning travado em `claude-sonnet-5`.
+   * Subagent Pinning: `env.CLAUDE_CODE_SUBAGENT_MODEL: "sonnet"` (alias, não ID fixo de versão).
    * Plugins oficiais habilitados: `superpowers`, `ponytail`, `caveman`, `gopls-lsp`.
-   * Remoção da variável de persistência cega (`CLAUDE_CODE_FORCE_SESSION_PERSISTENCE: 0`).
+   * Persistência cega desligada: `env.CLAUDE_CODE_FORCE_SESSION_PERSISTENCE: "0"` (ou ausente; o doctor só reprova `"1"`).
 3. **Configuração do Antigravity / Gemini:**
    * Instalação do plugin global em `~/.gemini/config/plugins/rtk/`.
    * Verificação do hook `PreToolUse` para reescrita transparente de `run_command`.

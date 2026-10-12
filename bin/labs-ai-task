@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TASK_NAME="${1:-}"
+TARGET_PATH="${2:-}"
+
+if [[ -z "$TASK_NAME" || -z "$TARGET_PATH" ]]; then
+    echo "Uso: bin/labs-ai-task <nome-da-tarefa> <caminho-alvo>"
+    exit 1
+fi
+
+SLUG=$(echo "$TASK_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+BRANCH="labs/${SLUG}"
+WT_DIR="../wt-${SLUG}"
+
+# 1. Isolamento Físico de Worktree
+echo "==> [Camada 1] Criando worktree isolado em $WT_DIR..."
+git worktree add -b "$BRANCH" "$WT_DIR" HEAD
+mkdir -p "$WT_DIR/.labs"
+
+# 2. Planejamento Headless (Opus)
+echo "==> [Camada 2] Disparando Opus Headless para emitir .labs/spec.md..."
+PROMPT="Você é o Arquiteto Frontier do Labs. Analise $TARGET_PATH e preencha rigorosamente o template .labs/spec.md para a tarefa: '$TASK_NAME'. Sem preâmbulos."
+
+claude -p --model opus "$PROMPT" > "$WT_DIR/.labs/spec.md"
+
+# 3. Disparo do Worker Efêmero (Sonnet)
+echo "==> [Camada 3] Contrato firmado. Iniciando sessão de execução com Sonnet..."
+(
+    cd "$WT_DIR"
+    claude --model sonnet \
+      --append-system-prompt "Você é o Worker de Implementação. Siga estritamente .labs/spec.md. Aplique a Escada Ponytail (menor diff funcional). Finalize validando com o Juiz Compilador."
+)
+
+# 4. Verificação Final pós-sessão
+echo "==> [Camada 4] Executando validação de saída..."
+(
+    cd "$WT_DIR"
+    SPEC_CMD=$(sed -n '/Juiz Compilador/,$p' .labs/spec.md | grep -m1 '^rtk ' || echo "rtk git status")
+    # Comando vem de saída de LLM: nada de eval. Só `rtk ...`, sem metacaracteres de shell,
+    # executado como lista de argumentos.
+    if [[ "$SPEC_CMD" =~ [\;\&\|\`\$\<\>\(\)] ]]; then
+        echo "  [FAIL] Comando do spec recusado (metacaractere de shell): $SPEC_CMD"
+        exit 1
+    fi
+    read -ra ARGS <<< "$SPEC_CMD"
+    echo "  -> ${ARGS[*]}"
+    "${ARGS[@]}"
+)

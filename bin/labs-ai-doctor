@@ -34,6 +34,22 @@ if [ -f "$CLAUDE_SETTINGS" ]; then
     else
         echo "  [OK] Persistência forçada de sessão desativada no Claude (efêmero por padrão)."
     fi
+
+    # Sub-Agent Pinning (§6.3) e plugins obrigatórios (§8.1)
+    if grep -q '"CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"' "$CLAUDE_SETTINGS"; then
+        echo "  [OK] Subagentes travados no Sonnet."
+    else
+        echo "  [WARN] CLAUDE_CODE_SUBAGENT_MODEL=sonnet ausente em ~/.claude/settings.json."
+        WARNINGS=$((WARNINGS + 1))
+    fi
+    for PLUGIN in superpowers ponytail caveman gopls-lsp; do
+        if grep -q "\"$PLUGIN@[^\"]*\": true" "$CLAUDE_SETTINGS"; then
+            echo "  [OK] Plugin $PLUGIN habilitado."
+        else
+            echo "  [WARN] Plugin $PLUGIN não habilitado no Claude Code."
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    done
 else
     echo "  [WARN] Configuração ~/.claude/settings.json não encontrada."
     WARNINGS=$((WARNINGS + 1))
@@ -51,10 +67,11 @@ fi
 
 # 5. Checagem da Doutrina Ponytail no Gemini
 GEMINI_MD="$HOME/.gemini/config/GEMINI.md"
-if [ -f "$GEMINI_MD" ] && grep -q "Doutrina Ponytail" "$GEMINI_MD"; then
+GEMINI_PONYTAIL="$HOME/.gemini/config/plugins/ponytail/rules/AGENTS.md"
+if grep -qs "Doutrina Ponytail" "$GEMINI_MD" "$GEMINI_PONYTAIL"; then
     echo "  [OK] Doutrina Ponytail ativa nas regras do Gemini."
 else
-    echo "  [WARN] Doutrina Ponytail não detectada em ~/.gemini/config/GEMINI.md."
+    echo "  [WARN] Doutrina Ponytail não detectada (GEMINI.md nem plugin ponytail)."
     WARNINGS=$((WARNINGS + 1))
 fi
 
