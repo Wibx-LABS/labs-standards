@@ -206,7 +206,7 @@
 
 **11.3** The trigger is **evidence of instrument fault**, not disagreement with an outcome. The misfiring component must be named and the fault stated. *"This ranking is wrong"* is not a trigger. *"The Readiness criterion does not account for a dependency on an unstaffed role"* is.
 
-**11.4** Amendment requests are logged, including those declined. Repeated requests against the same component are themselves evidence that the component is faulty.
+**11.4** Amendment requests are logged, including those declined. Repeated requests against the same component are themselves evidence that the component is faulty. The log is this repository's pull requests labelled `amendment`: merged is adopted, closed unmerged is declined. Each names the component and the fault (§11.3). v1.1 is the baseline and predates the log.
 
 **11.5** **The live verdict or engagement executes as decided while an amendment is argued.** There is no pause. An amendment applies to the next verdict, never the one in flight.
 
