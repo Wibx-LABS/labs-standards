@@ -5,7 +5,7 @@
 >
 > **What this file is not.** It is not the reasoning behind the rules, and it contains no assumptions, warnings, or open questions. Those live in internal context documentation. **A rule believed to be wrong is amended under §11, never hedged, annotated, or worked around.**
 >
-> **Section numbers are stable.** Cite them. They do not renumber between versions; superseded sections are marked void and retained.
+> **Section numbers are stable.** Cite them. They do not renumber between versions; superseded sections are marked void.
 
 ---
 
@@ -148,7 +148,7 @@
 
 **7.5** On termination, the artifact routes to IT as production code or is decommissioned.
 
-**7.6** The original pathology returns to the register as unresolved and **re-enters through §5 as a new candidate**, scored against the current field, and may lose.
+**7.6** The original pathology returns as unresolved and **re-enters through §5 as a new candidate**, scored against the current field, and may lose.
 
 ---
 
@@ -194,7 +194,7 @@
 
 **10.8** *Void (v1.1).*
 
-**10.9** The charter governs the organization, not a list. The register is the current map, not the scope.
+**10.9** The charter governs the organization, not a list.
 
 ---
 
@@ -202,7 +202,7 @@
 
 **11.1** A rule believed to be wrong is **amended**, never overridden, hedged, or worked around. This binds Labs and every agent operating under this charter.
 
-**11.2** An amendment acts on the **instrument** — a rule, criterion, scale, module, weight, or register entry — never on a live verdict or a live engagement.
+**11.2** An amendment acts on the **instrument** — a rule, criterion, scale, module, or weight — never on a live verdict or a live engagement.
 
 **11.3** The trigger is **evidence of instrument fault**, not disagreement with an outcome. The misfiring component must be named and the fault stated. *"This ranking is wrong"* is not a trigger. *"The Readiness criterion does not account for a dependency on an unstaffed role"* is.
 
@@ -210,5 +210,9 @@
 
 **11.5** **The live verdict or engagement executes as decided while an amendment is argued.** There is no pause. An amendment applies to the next verdict, never the one in flight.
 
-**11.6** Superseded sections are marked void and retained. Section numbers never renumber.
+**11.6** Superseded sections are marked void. Section numbers never renumber.
+
+---
+
+## §12 — *Void (v1.1). Removed.*
 
