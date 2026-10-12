@@ -35,14 +35,14 @@ if [ -f "$CLAUDE_SETTINGS" ]; then
         echo "  [OK] Persistência forçada de sessão desativada no Claude (efêmero por padrão)."
     fi
 
-    # Sub-Agent Pinning (§6.3) e plugins obrigatórios (§8.1)
+    # Trava de modelo dos subagentes e plugins obrigatórios
     if grep -q '"CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"' "$CLAUDE_SETTINGS"; then
         echo "  [OK] Subagentes travados no Sonnet."
     else
         echo "  [WARN] CLAUDE_CODE_SUBAGENT_MODEL=sonnet ausente em ~/.claude/settings.json."
         WARNINGS=$((WARNINGS + 1))
     fi
-    for PLUGIN in superpowers ponytail caveman gopls-lsp; do
+    for PLUGIN in superpowers ponytail gopls-lsp; do
         if grep -q "\"$PLUGIN@[^\"]*\": true" "$CLAUDE_SETTINGS"; then
             echo "  [OK] Plugin $PLUGIN habilitado."
         else

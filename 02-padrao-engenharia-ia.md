@@ -1,289 +1,76 @@
 # PADRÃO DE ENGENHARIA DE CONTEXTO E USO DE IA (LABS AI & CONTEXT STANDARD)
 
-**Classificação:** Norma Canônica de Engenharia de Contexto, Governança de Tokens e Automação Agêntica  
-**Status:** ATIVO / CANÔNICO (EM REFINAMENTO CONTÍNUO)  
+**Classificação:** Norma Canônica de Engenharia de Contexto e Automação Agêntica  
+**Status:** ATIVO / CANÔNICO  
 **Última Revisão:** Outubro de 2026  
 
 ---
 
-## Guia Rápido: Como o Labs Opera com Inteligência Artificial
-
-Este documento define a governança técnica para todo desenvolvimento assistido ou conduzido por modelos de linguagem (LLMs) e agentes autônomos no Labs. Seu objetivo primário é duplo: **eliminar a degradação de código causada por janelas de contexto saturadas (*Lost in the Middle* e *Context Poisoning*)** e **impedir o esgotamento de cotas semanais e limites de computação (Claude Max 20 / APIs frontier)**, sem reduzir a velocidade de entrega, a autonomia ou a ambição dos projetos.
-
-### O Ciclo Operacional em uma Imagem (A Regra de Ouro)
-
-```mermaid
-flowchart TD
-    subgraph s1 ["1. Fronteira Física & Extração (0 Tokens)"]
-        Repo["Repositório Legado / Monorepo"] --> WT["Git Worktree + sparsePaths (Escopo Cirúrgico)"]
-        WT --> LSP["Extração por LSP / AST (Apenas Tipos & Assinaturas)"]
-    end
-
-    subgraph s2 ["2. Planejamento Headless (Cérebro Frontier)"]
-        LSP --> Opus["Opus Headless: claude -p / One-Shot"]
-        Opus --> SpecFile[".labs/spec.md (Contrato Imutável de Arquitetura)"]
-        Opus -.-> Kill1["Encerramento Imediato da Sessão de Raciocínio (Zero Drag)"]
-    end
-
-    subgraph s3 ["3. Execução Efêmera & Ponytail (Worker)"]
-        SpecFile --> CacheTop["Prefixo de Prompt Imutável (90% Cache Discount)"]
-        CacheTop --> Worker["Worker Efêmero (Sonnet / Gemini Flash) em Contexto Limpo"]
-        Worker --> Ponytail["A Escada Ponytail: Menor Diff Funcional & YAGNI"]
-        Ponytail --> Patch["Aplicação de Diffs"]
-    end
-
-    subgraph s4 ["4. Juiz Compilador & Validação Determinística"]
-        Patch --> RTK["RTK Proxy (Supressão de Stdout)"]
-        RTK --> TestSuite{"Compilador / Teste Local (tsc, go test)"}
-        TestSuite -->|Exit 0| Done["Commit, PR & Destruição do Worktree"]
-        TestSuite -->|Exit != 0| Feedback["Apenas Linha do Erro Filtrada Entra no Contexto"]
-        Feedback --> Worker
-    end
-```
+Regras para todo desenvolvimento assistido ou conduzido por LLMs e agentes no Labs. Objetivo: código fiel ao design em sessões longas e cota de tokens que dura a semana. O porquê de cada regra mora na documentação interna de contexto, não aqui.
 
 ---
 
-## 1. Princípios Fundamentais (Os Axiomas de Contexto Labs)
+## 1. Princípios
 
-1. **Supremacia da Severidade de Processo (*Process Severance*):** O processo que explora arquitetura e define contratos nunca compartilha o histórico conversacional com o processo que implementa código. Planejadores frontier operam em modo headless efêmero (`claude -p`), gravam o contrato estático (`.labs/spec.md`) e encerram a sessão imediatamente.
-2. **Soberania do Determinismo Local:** O que um compilador (`tsc --noEmit`, `go test`), linter, AST ou script de shell avalia via código de saída binário (`exit 0` vs. `non-zero`) com latência zero e custo zero de tokens jamais deve ser delegado a um LLM ou modelo discriminativo externo.
-3. **Invariância de Prefixo e Continuidade de Cache:** Regras de projeto (`CLAUDE.md`, `GEMINI.md`) e especificações técnicas de tarefas residem no topo imutável do prompt. Isso maximiza a retenção de atenção e garante determinismo no desconto de 90% de Prompt Caching. A auto-compactação reativa de histórico é proibida como substituta de boa arquitetura de sessão.
-4. **Cercamento Físico de Fronteira (*Zero-Token Fencing*):** É terminantemente proibido permitir que agentes façam buscas cegas (`grep -rn` aberto, `find .`) sobre monorepos ou bases legadas. O sistema de arquivos deve ser cercado previamente via `git worktree` e `sparsePaths`, e a navegação estrutural deve ser conduzida exclusivamente por símbolos de Language Server Protocol (LSP).
-5. **A Disciplina do Menor Diff Funcional (Doutrina Ponytail):** O melhor código é o código não escrito. Toda geração de código é governada pela rejeição ativa a abstrações especulativas, boilerplate desnecessário e duplicação de utilitários que a biblioteca padrão ou o codebase já oferecem.
-
----
-
-## 2. A Física da Janela de Contexto (Fundamentos Teóricos)
-
-A administração de contexto não é uma preferência estética ou contábil; é uma restrição de engenharia imposta pela arquitetura interna dos transformadores de atenção (*Attention Mechanisms*).
-
-### 2.1. O Fenômeno *Lost in the Middle*
-Conforme uma sessão atinge dezenas de turnos e ultrapassa de 40.000 a 60.000 tokens, a capacidade do modelo de recuperar e obedecer instruções localizadas no terço médio da janela degrada acentuadamente.
-* **Mecanismo:** A atenção é naturalmente concentrada no início do prompt (efeito de primazia) e no final imediato (efeito de recência).
-* **Impacto em Engenharia:** Invariantes críticas de banco de dados, regras de segurança e restrições de arquitetura definidas nos primeiros turnos de uma sessão longa são progressivamente esquecidas pelo modelo, resultando em código que compila mas viola o design do sistema.
-* **Mitigação Labs:** O contrato técnico (`.labs/spec.md`) é montado no topo imutável da janela do worker, mantendo as diretrizes na zona de primazia durante todo o ciclo de vida da tarefa.
-
-### 2.2. Envenenamento de Contexto (*Context Poisoning* & *Cascading Failures*)
-Em sessões multi-turn interativas, se o modelo emite uma inferência incorreta, gera um patch com erro de sintaxe ou recebe um stack trace de 300 linhas de um terminal não filtrado, esse resíduo passa a compor a distribuição de probabilidade dos próximos tokens.
-* **Mecanismo:** O modelo condiciona sua próxima resposta a ser coerente com o histórico existente — incluindo os erros e falsas premissas anteriores.
-* **A Regra Labs:** **Contexto contaminado não se conserta conversando.** Quando uma sessão entra em loop de correções remendadas, a sessão deve ser destruída e reiniciada a partir do contrato estático em disco.
-
-### 2.3. A Equação da Queima de Tokens
-A queima acelerada de cotas semanais (como o Claude Max 20) decorre da ressubmissão cumulativa:
-$$\text{Tokens Faturados por Turno } N = \text{Prefixo Fixo} + \sum_{i=1}^{N-1} (\text{Prompt}_i + \text{Resposta}_i) + \text{Saídas de Ferramentas}_N$$
-
-Em uma sessão monolítica de 15 turnos executada no Opus, o desenvolvedor paga o custo de raciocínio estendido sobre dezenas de milhares de tokens repetidos a cada interação. A severidade de processo transforma esse comportamento em $N$ execuções isoladas de baixo contexto em workers mais rápidos (Sonnet/Flash), preservando a cota frontier apenas para a fase de raciocínio puro.
+1. **Planejar e executar em contextos separados.** A sessão que define o plano não escreve o código. O plano vai para disco; a implementação roda em subagentes de contexto limpo (§2).
+2. **Juiz Compilador.** O gate de aceitação é o código de saída de compilador, linter e testes locais (`go test`, `tsc --noEmit`). `exit 0` aceita; o erro estrito dita a correção. Revisão por LLM (`/ponytail-review`, `/code-review`) é permitida como sinal adicional — nunca substitui nem dispensa o gate.
+3. **Prefixo estável.** Regras do projeto (`CLAUDE.md`, `AGENTS.md`) e o plano ficam no topo do contexto e não são editados no meio da tarefa. Prefixo estável mantém o cache de prompt válido.
+4. **Contexto contaminado não se conserta conversando.** Sessão em loop de correções remendadas é descartada e reiniciada a partir do plano em disco.
+5. **Escopo cercado.** Em monorepo ou base legada, o agente trabalha em `git worktree` com `git sparse-checkout` restrito aos diretórios da tarefa. Navegação por símbolo via LSP antes de leitura de arquivo inteiro.
+6. **Menor diff funcional.** Rege toda geração de código. Fonte única: plugin Ponytail (escada de decisão, regras e comentários `ponytail:`). Esta norma não duplica o conteúdo.
 
 ---
 
-## 3. A Topologia Canônica em 4 Camadas
+## 2. Fluxo de Trabalho: Coordenador e Subagentes (Superpowers)
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│ Camada 1: Fronteira Física & Extração Local                            │
-│ (Git Worktrees, sparsePaths, LSP, Tree-sitter)                         │
-│ ──► Custo: 0 Tokens. Impede o vazamento de monorepos legados.          │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Tipos e assinaturas cirúrgicas
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Camada 2: Contrato Arquitetural & Roteamento Cognitivo                 │
-│ (Opus Headless: `claude -p` > .labs/spec.md, Sub-Agent Pinning)        │
-│ ──► Custo: Turno único Frontier. Zero herança conversacional.          │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Especificação imutável (.labs/spec.md)
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Camada 3: Execução Efêmera, Cache Quente & Ponytail                    │
-│ (Sonnet/Flash em sessão limpa, Escada de 7 Degraus, Cache Anchor)      │
-│ ──► Custo: Taxa de Worker com 90% de desconto em leituras de cache.    │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Patches de código & Diffs
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Camada 4: Juiz Compilador & Supressão Determinística                   │
-│ (RTK CLI Hooks, `tsc --noEmit`, `go test`, Exit Codes)                 │
-│ ──► Custo: 0 Tokens em sucesso; apenas erro estrito na falha.          │
-└────────────────────────────────────────────────────────────────────────┘
-```
+Tarefa de um passo: sessão única, sem cerimônia. Tarefa de múltiplos passos:
 
-### 3.1. Camada 1: Fronteira Física & Extração Local
-* **Git Worktrees Isolados:** Toda refatoração pesada opera em uma árvore de trabalho separada (`git worktree add ../feature-branch feature-branch`). Isso garante que operações concorrentes ou arquivos temporários não colidam com o branch principal.
-* **`worktree.sparsePaths`:** Quando operando em monorepos, o arquivo de configuração do harness trava o checkout apenas nos diretórios diretamente impactados (ex.: `packages/engine-core`).
-* **LSP sobre Grep:** Para localizar definições de structs, interfaces ou chamadas de função, o agente deve invocar comandos de LSP (`textDocument/definition`) ou Tree-sitter. Extrai-se a assinatura exata de 15 tokens em vez de injetar um arquivo de 1.000 linhas ou um log de grep com 200 ocorrências dispersas.
-
-#### 3.1.1. O Papel de Grafos Semânticos (Joern, Graphify, Cartographer)
-Ferramentas de análise estrutural profunda não são plugins para conversar em tempo real; são **oráculos determinísticos de pré-processamento local**:
-1. **Joern (Code Property Graph - CPG):**
-   * *O que faz:* Combina AST (árvore sintática), CFG (fluxo de controle) e PDG (dependência de dados) em um grafo formal consultável via CPGQL.
-   * *O Risco de Contexto:* Injetar nós de CPG ou dumps brutos de grafo no prompt destrói a janela com dezenas de milhares de tokens ilegíveis.
-   * *O Uso Correto no Labs:* Execução local em CLI para rastrear taint analysis, callers profundos ou impacto de refatoração. Apenas o **slice de 3 a 5 linhas resultantes da consulta** entra no prompt do Opus na Camada 2.
-2. **Graphify:**
-   * *O que faz:* Gera um mapa relacional do projeto (`graphify-out/graph.json`).
-   * *O Uso Correto no Labs:* Não alimentar o JSON inteiro para o LLM. Consultar o arquivo via `jq` ou script local para extrair estritamente os acoplamentos de 1º grau do módulo antes de acionar a Camada 2.
-3. **Cartographer / Mapeamento de Sub-sistemas:**
-   * *O que faz:* Gera mapas visuais de arquitetura e fronteiras de domínio.
-   * *O Uso Correto no Labs:* Opera como gerador de documentação estática e balizador de `sparsePaths`. Seus diagramas (Mermaid) moram em `docs/` e são lidos sob demanda, nunca injetados cegamente no boot de toda sessão.
-
-### 3.2. Camada 2: Contrato Arquitetural & Roteamento Cognitivo
-* **Execução Headless do Modelo Frontier:** O modelo de maior capacidade de raciocínio (Opus) é invocado exclusivamente para síntese, diagnóstico e planejamento de alto nível de forma não interativa:
-  ```bash
-  claude -p --model opus "Analise as interfaces em $CONTEXT e gere o plano de migração conforme o template Labs" > .labs/spec.md
-  ```
-* **Encerramento de Sessão:** O processo do Opus encerra no momento em que o arquivo `.labs/spec.md` é gravado. O Opus nunca é mantido aberto para "digitar código" ou "ajustar ponto e vírgula".
-
-### 3.3. Camada 3: Execução Efêmera, Cache Quente & Ponytail
-* **Sessão do Worker:** O agente de execução (Sonnet ou Gemini Flash) é inicializado em uma sessão limpa, recebendo como contexto apenas:
-  1. O arquivo canônico de regras (`CLAUDE.md` ou `AGENTS.md`).
-  2. O arquivo de especificação (`.labs/spec.md`).
-* **Aproveitamento de Cache (90% Discount):** Como o prefixo (`CLAUDE.md` + `.labs/spec.md`) permanece byte a byte idêntico ao longo de toda a implementação da tarefa, todas as chamadas do worker desfrutam do desconto de 90% em tokens de entrada cacheados da Anthropic.
-
-### 3.4. Camada 4: Juiz Compilador & Supressão Determinística
-* **RTK Hooks Ativos:** Todas as chamadas de terminal executadas pelo agente são transparentemente filtradas pelo RTK (`rtk hook claude` e plugin `rtk` no Antigravity).
-* **Gating por Exit Code:** O sucesso de uma implementação é ditado exclusivamente pelo código de retorno da ferramenta local:
-  ```bash
-  rtk go test ./... && rtk golangci-lint run
-  ```
-  * Se `exit == 0`: A saída de terminal é suprimida ou resumida, e a tarefa é marcada como concluída sem auto-elogios conversacionais.
-  * Se `exit != 0`: O RTK remove cabeçalhos redundantes e formatação ANSI, entregando ao agente estritamente o arquivo, a linha e a mensagem de erro que precisa ser corrigida.
+1. **Sessão coordenadora.** Planeja com Superpowers (`brainstorming`, `writing-plans`) e grava o plano em disco. Não edita código; registra apenas plano e status.
+2. **Execução por `subagent-driven-development`.** Cada tarefa do plano vai para um subagente isolado, que implementa, valida no Juiz Compilador (§1.2), commita e encerra. O coordenador recebe o recibo, marca a tarefa e despacha a seguinte.
+3. **Trava de modelo.** Coordenador pode rodar no Opus. Subagentes travados no Sonnet via `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` (alias, não ID de versão).
 
 ---
 
-## 4. Governança de Qualidade e Geração Mínima (A Doutrina Ponytail)
+## 3. Grafos Semânticos e Mapas de Arquitetura
 
-A disciplina Ponytail rege toda escrita de código assistida por IA no Labs. Seu princípio central é: **o modelo atua como um desenvolvedor sênior pragmático e preguiçoso — eficiência máxima, zero desperdício de código.**
+Ferramentas de grafo são pré-processamento local, não interlocutores. **Só o recorte da consulta entra no prompt; dump bruto nunca.**
 
-### 4.1. A Escada de Decisão de 7 Degraus
-Antes de gerar qualquer linha de código novo, o agente deve parar no primeiro degrau que solucionar o problema:
+- **Joern (Code Property Graph):** consulta CPGQL local para taint analysis, callers profundos e impacto de refatoração. Entra no prompt apenas o slice resultante.
+- **Graphify:** `graphify-out/graph.json` é consultado via `jq` ou script local para extrair os acoplamentos de 1º grau do módulo. O JSON inteiro nunca entra no prompt.
+- **Mapas de arquitetura** (diagramas, fronteiras de domínio) moram em `docs/` e são lidos sob demanda, nunca carregados no boot de toda sessão.
 
-1. **Isso precisa ser construído? (YAGNI):** Rejeitar features, parâmetros e abstrações não solicitados explicitamente no ticket ou na especificação.
-2. **Já existe neste codebase?** Reutilizar helpers, utilitários de erro, formatadores e patterns já presentes no repositório. Zero duplicação.
-3. **A biblioteca padrão da linguagem já faz isso?** Priorizar stdlib nativa (Go `net/http`, `os`, `errors`; Node `node:fs`, `node:crypto`).
-4. **Um recurso nativo da plataforma cobre?** Usar recursos de SO, banco de dados (constraints, triggers, SQL nativo) ou Docker antes de criar lógica em aplicação.
-5. **Uma dependência já instalada resolve?** Proibição absoluta de adicionar novas bibliotecas no `go.mod` ou `package.json` sem justificativa formal no spec.
-6. **Pode ser resolvido em uma linha legível?** Reduzir a lógica à menor expressão clara possível.
-7. **Somente então:** Escrever o código mínimo que satisfaz a especificação e passa no teste.
-
-### 4.2. Regras Rígidas de Geração de Código
-* **Supremacia do Menor Diff Funcional:** Entre duas abordagens corretas, a que altera menos arquivos e menos linhas é a mandatória. Deleção de código tem precedência sobre adição.
-* **Cura de Causa-Raiz vs. Remendo de Sintoma:** Quando um bug é apontado, é proibido apenas colocar um `if` defensivo na linha que explodiu. É obrigatório mapear os chamadores (`callers`) e tratar a causa na função compartilhada.
-* **Proibição de Abstrações Prematuras:** Proibido criar *Design Patterns* especulativos (factories, adapters, handlers genéricos) para códigos de uso único. Código simples e direto vence código excessivamente arquitetado.
-* **Comentários de Teto (`ponytail:`):** Quando uma simplificação pragmática for intencionalmente adotada (ex.: busca linear em lista pequena em vez de tabela hash complexa), ela deve ser documentada com um comentário:
-  ```go
-  // ponytail: busca linear O(n) suficiente para até 100 itens; se ultrapassar, migrar para map indexado.
-  ```
-
-### 4.3. A Doutrina: Compiler-as-Judge vs. Agent-as-Judge
-O Labs rejeita expressamente a prática de *Agent-as-Judge* (usar um LLM para avaliar e dar parecer verbal sobre o código de outro LLM) como critério de aceitação de software:
-1. **O Vício da Adulação (*Sycophancy*):** Modelos avaliadores tendem estatisticamente a validar código falho gerado por outros modelos ou a focar em firulas cosméticas de formatação, deixando passar bugs graves de tipagem, ponteiros e concorrência [Certain].
-2. **Desperdício Duplo de Tokens:** Usar um segundo agente para reler centenas de linhas e emitir um relatório conversacional duplica a fatura de tokens sem fornecer garantia determinística de execução [Certain].
-3. **Soberania do Binário (Compiler-as-Judge):** Compiladores locais (`go build`, `tsc --noEmit`, `cargo check`), linters e testes unitários com asserções reais fornecem **verdade matemática binária** (`exit 0` vs. `exit 1`) em milissegundos e a custo zero de tokens [Certain].
-* **A Regra Labs:** Nenhum agente deve ser consultado com *"o que você achou deste patch?"*. O código é submetido ao compilador local via RTK. Se o retorno for `exit 0`, o patch é aceito; se for diferente de zero, o erro estrito do compilador dita a correção.
+Ferramenta nova entra nesta seção quando um projeto a usar e o resultado for registrado.
 
 ---
 
-## 5. Catálogo Canônico de Tooling & Hooks Labs
+## 4. Ferramentas Canônicas
 
-O ecossistema do Labs adota ferramentas canônicas integradas para assegurar a aplicação mecânica destas regras:
+| Ferramenta | Papel | Configuração |
+| :--- | :--- | :--- |
+| **RTK** | Compressão de saída de terminal e leitura de arquivos. | Hook `PreToolUse` no Claude Code (`rtk hook claude`); plugin global no Antigravity (`~/.gemini/config/plugins/rtk/`). |
+| **Ponytail** | Menor diff funcional (§1.6). | Plugin no Claude Code; regras no Antigravity/Gemini. |
+| **Superpowers** | Fluxo coordenador-subagente (§2). | Plugin no Claude Code. |
+| **gopls-lsp** | Navegação por símbolo (§1.5). | Plugin no Claude Code. |
 
-| Ferramenta | Papel na Arquitetura | Modo de Instalação / Configuração | Ganho Comprovado |
-| :--- | :--- | :--- | :--- |
-| **RTK (Rust Token Killer)** | Proxy de compressão de saída de terminal e leituras de arquivos. | Hook nativo `PreToolUse` em Claude Code (`rtk hook claude`) e Plugin Global em Antigravity (`~/.gemini/config/plugins/rtk/`). | **74.9% de redução** média em tokens de I/O local [Certain]. |
-| **Ponytail** | Governança de qualidade de código, YAGNI e menor diff funcional. | Plugin ativo em `~/.claude/plugins/` e regras declaradas em prompts globais. | Elimina prolixidade e previne injeção de classes desnecessárias [Certain]. |
-| **Caveman** | Compressão de prosa conversacional do modelo. | Plugin ativo em `~/.claude/plugins/` (`CAVEMAN_DEFAULT_MODE: full`). | Reduz em até 60% os tokens de saída em explicações [Certain]. |
-| **Gopls / LSP Tools** | Resolução precisa de tipos e navegação AST. | Plugins oficiais de LSP no harness (`gopls-lsp`). | Substitui leituras de arquivos inteiros por queries pontuais de 15 tokens [Certain]. |
-
----
-
-## 6. A Regra de Ouro Operacional (The Golden Rule)
-
-Para garantir que nenhum desenvolvedor do Labs atinja o teto semanal de cotas e para manter a mais alta fidelidade de código em projetos legados, toda demanda de complexidade média ou alta deve seguir este fluxo obrigatório:
-
-### Protocolo de Execução em 5 Passos:
-1. **Passo 1: Cercamento (Camada 1):** Criar worktree isolado e declarar `worktree.sparsePaths`.
-2. **Passo 2: Diagnóstico e Assinaturas (Camada 1):** Coletar interfaces via LSP/Tree-sitter ou fatias de CPG (Joern/Graphify).
-3. **Passo 3: O Contrato Headless (Camada 2):** Executar Opus via `claude -p`, emitir `.labs/spec.md` e encerrar o processo.
-4. **Passo 4: Execução Desacoplada e Ponytail (Camada 3):** Abrir sessão limpa com Sonnet/Flash com `.labs/spec.md` no topo, aplicando a Escada Ponytail.
-5. **Passo 5: Validação Determinística (Camada 4):** Validar via RTK + testes locais (`exit 0`).
+**Métrica única:** `rtk gain`, alvo ≥ 70% de economia média. Abaixo disso, `rtk discover` aponta os comandos sem filtro.
 
 ---
 
-### 6.1. Template Canônico de Contrato (`.labs/spec.md`)
-O Opus em modo headless deve obrigatoriamente preencher este template sem adicionar conversação ou preâmbulos:
+## 5. Setup da Estação e `bin/labs-ai-doctor`
 
-Fonte única: [`templates/spec.md`](./templates/spec.md). O `bin/labs-ai-task` injeta este arquivo no prompt do Opus; editar o template muda o contrato de todas as tarefas seguintes.
-
----
-
-### 6.2. O Orquestrador Local (`bin/labs-ai-task`)
-Para eliminar o atrito cognitivo e garantir que nenhum desenvolvedor precise orquestrar o processo manualmente, o Labs utiliza o script `bin/labs-ai-task`:
-
-Fonte única: [`bin/labs-ai-task`](./bin/labs-ai-task). Roda de dentro do repositório-alvo; o script lê o template de [`templates/spec.md`](./templates/spec.md) no próprio `labs-standards`, então não é copiado para cada repo.
-
-```bash
-cd ~/LABS/meu-repo
-~/LABS/labs-standards/bin/labs-ai-task "nome da tarefa" caminho/alvo
-```
-
-O comando de validação da seção 5 do spec é saída de LLM: o script só executa linhas `rtk ...` sem metacaracteres de shell (`; & | $ ` etc.), como lista de argumentos, nunca via `eval`.
-
----
-
-### 6.3. Projetos Complexos & Multi-Etapas: O Fluxo Coordenador-Subagente (Superpowers)
-Para iniciativas amplas que envolvem brainstorming, planos arquiteturais extensos e múltiplas tarefas sequenciais, o desenvolvedor **não precisa fechar a sessão, dar `/clear` ou colar prompts manuais** [Certain]. Adota-se o padrão de Coordenador Desacoplado:
-
-1. **A Sessão Coordenadora (Persistente & Foco em Planejamento):**
-   * O desenvolvedor permanece na mesma janela de chat durante todo o ciclo do projeto.
-   * Utiliza o Superpowers (`brainstorming`, `writing-plans`) para definir o plano da feature em `docs/plans/{{nome}}.md`.
-   * **Invariante do Coordenador:** O coordenador é proibido de editar código diretamente no chat principal. Ele mantém o contexto limpo (entre 15k e 25k tokens), registrando apenas o plano e o status das tarefas.
-2. **Execução Automatizada via `subagent-driven-development`:**
-   * O plano não é executado inline; o coordenador invoca o skill `subagent-driven-development` do Superpowers [Certain].
-   * Para cada tarefa do plano, um **subagente efêmero e isolado** é despachado automaticamente com o contexto cirúrgico daquela tarefa.
-   * O subagente escreve o código, valida contra o compilador (`exit 0`), commita no git e encerra sua existência. Seu contexto é descartado [Certain].
-   * O coordenador recebe um recibo de duas linhas (`Tarefa 2 concluída no commit abc123`), marca `[x]` no plano e despacha a Tarefa 3 automaticamente, sem interrupções e sem intervenção humana [Certain].
-3. **Trava de Modelo (Sub-Agent Pinning):**
-   * O Coordenador pode operar no modelo Frontier (Opus) para maximizar o raciocínio estratégico.
-   * Os subagentes de implementação são **rigorosamente travados no Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=sonnet`, alias que acompanha a versão corrente), garantindo que 90% da volumetria de escrita de código seja faturada a preço de worker [Certain].
-
----
-
-## 7. Checklist de Conformidade Labs (Definition of Done de Contexto)
-
-Antes de aprovar ou mergear qualquer Pull Request construído com auxílio de agentes de IA, o desenvolvedor deve atestar a conformidade com este checklist:
-
-- [ ] **Fencing de Filesystem:** O agente operou em escopo delimitado sem varrer árvores de diretórios irrelevantes.
-- [ ] **Desacoplamento de Fases:** A implementação foi executada em sessão separada da fase de ideação/arquitetura (zero herança de histórico de design).
-- [ ] **Conformidade Ponytail:** O diff final representa a menor alteração funcional viável, sem novas dependências ou abstrações não solicitadas.
-- [ ] **Filtragem de Terminal:** Todos os comandos de shell e testes rodaram sob o filtro do RTK.
-- [ ] **Juiz Compilador:** O código foi atestado por compilação local e testes com código de saída `0`, e não por presunção do modelo.
-- [ ] **Esterilidade de Contexto:** Nenhuma credencial, chave de API, segredo ou dump massivo de dados transitou pelo contexto da IA.
-
----
-
-## 8. Setup, Provisionamento e o Healthcheck `bin/labs-ai-doctor`
-
-Todo ambiente de desenvolvimento no Labs deve ser provisionado em menos de 3 minutos de forma determinística, sem depender de memória humana ou passos manuais [Certain].
-
-### 8.1. Runbook de Provisionamento da Estação (Mac / Linux)
-
-1. **Instalação do RTK (Proxy de Terminal):**
+1. **RTK:**
    ```bash
    cargo install rtk || brew install rtk-ai/tap/rtk
    rtk --version
    ```
-2. **Configuração Global do Claude Code (`~/.claude/settings.json`):**
-   * PreToolUse Hook apontando para `rtk hook claude`.
-   * Subagent Pinning: `env.CLAUDE_CODE_SUBAGENT_MODEL: "sonnet"` (alias, não ID fixo de versão).
-   * Plugins oficiais habilitados: `superpowers`, `ponytail`, `caveman`, `gopls-lsp`.
-   * Persistência cega desligada: `env.CLAUDE_CODE_FORCE_SESSION_PERSISTENCE: "0"` (ou ausente; o doctor só reprova `"1"`).
-3. **Configuração do Antigravity / Gemini:**
-   * Instalação do plugin global em `~/.gemini/config/plugins/rtk/`.
-   * Verificação do hook `PreToolUse` para reescrita transparente de `run_command`.
+2. **Claude Code (`~/.claude/settings.json`):**
+   * Hook `PreToolUse` apontando para `rtk hook claude`.
+   * `env.CLAUDE_CODE_SUBAGENT_MODEL: "sonnet"`.
+   * Plugins habilitados: `superpowers`, `ponytail`, `gopls-lsp`.
+   * `env.CLAUDE_CODE_FORCE_SESSION_PERSISTENCE` ausente ou `"0"`.
+3. **Antigravity / Gemini:** plugin RTK em `~/.gemini/config/plugins/rtk/` com hook `PreToolUse` de `run_command`.
 
-### 8.2. O Verificador de Ambiente: `bin/labs-ai-doctor`
-O utilitário de diagnóstico é por estação, não por repositório, e assegura que a estação não possui vazamento de contexto:
-
-Fonte única: [`bin/labs-ai-doctor`](./bin/labs-ai-doctor). Checa RTK, hook PreToolUse, persistência forçada, Sub-Agent Pinning, plugins obrigatórios (`superpowers`, `ponytail`, `caveman`, `gopls-lsp`), plugin RTK e Doutrina Ponytail no Antigravity/Gemini. Sai com `exit 1` só em falha crítica.
+Verificação, por estação: [`bin/labs-ai-doctor`](./bin/labs-ai-doctor). Sai com `exit 1` só em falha crítica.
 
 ```bash
 ~/LABS/labs-standards/bin/labs-ai-doctor
@@ -291,48 +78,11 @@ Fonte única: [`bin/labs-ai-doctor`](./bin/labs-ai-doctor). Checa RTK, hook PreT
 
 ---
 
-## 9. Matriz de SLOs, Métricas de Sucesso e Resultados Esperados
+## 6. Checklist de Conformidade (Definition of Done de Contexto)
 
-A governança do Labs mede a eficácia do padrão através de **Objetivos de Nível de Serviço (SLOs)** objetivos. Qualquer desvio dispara ações corretivas automáticas [Certain]:
+Antes de mergear PR construído com agentes:
 
-| Indicador (SLO) | Alvo Labs | Como É Medido | Ação em Caso de Violação |
-| :--- | :--- | :--- | :--- |
-| **Sobrevivência da Cota Semanal** | **7 / 7 dias (100%)** | Status de quota do Claude Max 20 / APIs Frontier | Se estourar antes do dia 7: auditoria obrigatória de histórico para caçar sessões monolíticas [Certain]. |
-| **Taxa de Cache Hit (Anthropic)** | **$\ge 85\%$** dos tokens lidos | Telemetria do provider / stats de prompt caching | Prefixo dinâmico quebrado; congelar `CLAUDE.md` e `.labs/spec.md` no topo [Certain]. |
-| **Compressão de I/O de Terminal** | **$\ge 70\%$** de economia média | `rtk gain` | Comandos novos vazaram sem compressão; adicionar filtro no RTK [Certain]. |
-| **Custo de Token por Tarefa Média** | **$\le 35.000$ tokens faturados** | Logs de sessão (`history.jsonl`) | Tarefa escopada de forma ampla demais; forçar quebra de spec em sub-tarefas [Certain]. |
-| **Teto de Contexto por Worker** | **$\le 50.000$ tokens** | Tamanho da janela ao encerrar a tarefa | Worker acumulou resíduos de depuração; encerrar sessão e recomeçar a partir do spec [Certain]. |
-| **Paridade do Compilador** | **100% dos PRs com `exit 0`** | CI / Git Pre-push hook | Rejeição automática de PR sem testes e build locais passando [Certain]. |
-
----
-
-## 10. Telemetria, Auditoria de Sessões e Melhoria Contínua
-
-Para que o padrão aprenda e evolua com o trabalho real dos desenvolvedores, dois mecanismos de observabilidade operam continuamente [Certain]:
-
-### 10.1. Descoberta de Oportunidades Perdidas (`rtk discover`)
-O RTK analisa periodicamente o histórico local de comandos executados no Claude Code para mapear saídas de ferramentas que entraram no contexto sem tratamento:
-```bash
-rtk discover
-```
-* Identifica comandos novos executados por desenvolvedores ou agentes que não possuem filtro ativo.
-* Quantifica quantos tokens foram desperdiçados.
-* Gera automaticamente a sugestão de regra TOML para inclusão no RTK.
-
-### 10.2. O Auditor de Sessões: `bin/labs-ai-audit`
-Script analítico que lê o histórico semanal do desenvolvedor e gera o relatório executivo de conformidade:
-```bash
-bin/labs-ai-audit
-```
-* **Métricas Apresentadas:**
-  1. Volume médio de tokens por tarefa entregue.
-  2. Número de sessões que ultrapassaram o teto saudável de 50.000 tokens.
-  3. Verificação de subagentes: certifica se todos os workers rodaram no Sonnet e não no Opus.
-  4. Detecção de *Cascading Failures*: sessões com mais de 3 falhas de compilação consecutivas sem descarte de histórico.
-
-### 10.3. O Ciclo de Feedback (Continuous Improvement)
-Toda anomalia detectada pela auditoria alimenta uma de três correções formais:
-1. **Regra de Sistema:** Se o modelo gerou abstrações excessivas, o caso vira um novo degrau de restrição no Ponytail.
-2. **Filtro de Terminal:** Se um comando novo cuspiu 1.000 linhas de logs, cria-se um filtro específico no RTK (`rtk <cmd>`).
-3. **Refinamento de Cerca:** Se o modelo leu arquivos fora do módulo, o `worktree.sparsePaths` daquele pacote é estreitado no manifesto do repositório.
-
+- [ ] **Juiz Compilador:** build e testes locais com `exit 0`, não presunção do modelo.
+- [ ] **Ponytail:** menor diff funcional, sem dependência ou abstração não solicitada.
+- [ ] **Separação:** tarefa de múltiplos passos executada a partir de plano em disco, fora da sessão que o escreveu.
+- [ ] **Esterilidade:** nenhuma credencial, segredo ou dump massivo de dados passou pelo contexto da IA.
