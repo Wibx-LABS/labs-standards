@@ -27,7 +27,7 @@ Tarefa de um passo: sessão única, sem cerimônia. Tarefa de múltiplos passos:
 
 1. **Sessão coordenadora.** Planeja com Superpowers (`brainstorming`, `writing-plans`) e grava o plano em disco. Não edita código; registra apenas plano e status.
 2. **Execução por `subagent-driven-development`.** Cada tarefa do plano vai para um subagente isolado, que implementa, valida no Juiz Compilador (§1.2), commita e encerra. O coordenador recebe o recibo, marca a tarefa e despacha a seguinte.
-3. **Trava de modelo.** Coordenador pode rodar no Opus. Subagentes travados no Sonnet via `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` (alias, não ID de versão).
+3. **Trava de modelo.** Coordenador pode rodar no Opus. Subagentes travados no Sonnet via `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` (alias, não ID de versão) e `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`. Sem o `FORCE`, o modelo pedido na invocação ou no frontmatter do agente passa por cima da variável.
 
 ---
 
@@ -66,6 +66,7 @@ Ferramenta nova entra nesta seção quando um projeto a usar e o resultado for r
 2. **Claude Code (`~/.claude/settings.json`):**
    * Hook `PreToolUse` apontando para `rtk hook claude`.
    * `env.CLAUDE_CODE_SUBAGENT_MODEL: "sonnet"`.
+   * `env.CLAUDE_CODE_SUBAGENT_MODEL_FORCE: "1"`.
    * Plugins habilitados: `superpowers`, `ponytail`, `gopls-lsp`.
    * `env.CLAUDE_CODE_FORCE_SESSION_PERSISTENCE` ausente ou `"0"`.
 3. **Antigravity / Gemini:** plugin RTK em `~/.gemini/config/plugins/rtk/` com hook `PreToolUse` de `run_command`.
