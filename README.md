@@ -26,6 +26,8 @@ Este repositório é a fonte única da verdade para arquitetura de software, Dev
 ./bin/labs-ai-doctor
 ```
 
+* **[`setup-windows.md`](./setup-windows.md):** Setup da estação no Windows (Norma 02 §5), escrito para o Claude Code aplicar a partir da URL deste repo.
+
 ---
 
 ## Titularidade e Licenciamento
