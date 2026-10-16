@@ -12,7 +12,7 @@ Este repositório é a fonte única da verdade para arquitetura de software, Dev
 | **[01-padrao-engenharia-devops.md](./01-padrao-engenharia-devops.md)** | **Norma Geral de Engenharia & DevOps:** Níveis por gatilho (0 todo projeto · 1 produção TI · 2 por evidência), imutabilidade via digests `@sha256`, um runtime Go ou TypeScript por projeto, fila PostgreSQL e templates de Dockerfile. |
 | **[02-padrao-engenharia-ia.md](./02-padrao-engenharia-ia.md)** | **Norma de Contexto & IA:** Planejamento e execução separados (Superpowers), Juiz Compilador, compressão RTK, Doutrina Ponytail (menor diff funcional) e uso de grafos semânticos. |
 | **[03-padrao-documentacao.md](./03-padrao-documentacao.md)** | **Norma de Documentação:** Diátaxis, docs-as-code, citação por símbolo e, no Nível 1, catálogo de funcionalidades de backend com status em dois eixos (backend · borda), impacto por funcionalidade e verificação contra o código. |
-| **[04-padrao-dados.md](./04-padrao-dados.md)** | **Norma de Dados (rascunho):** PostgreSQL — PK `uuid` v7 (v4 em identificador externo sensível), tipos e nomes, migrações só para frente e imutáveis sem travar tráfego, papéis mínimos, RLS com `FORCE` no Nível 1, backup com restauração ensaiada e dado pessoal declarado e expurgável. |
+| **[04-padrao-dados.md](./04-padrao-dados.md)** | **Norma de Dados:** PostgreSQL bem estruturado, eficiente, robusto, seguro e sem ponto único de falha — PK `uuid` v7, tipos e nomes, vetores em `pgvector`, migrações só para frente sem travar tráfego, papéis mínimos e RLS com `FORCE`, backup fora do host e, no Nível 1, standby em outro host com ensaio de restauração e promoção. |
 
 ---
 
