@@ -68,6 +68,7 @@ Medição de referência (PostgreSQL 18.6, 2 milhões de linhas, inserção em l
 | Conjunto fechado de valores | `text` + `CHECK (col IN (...))`; tabela de referência se o conjunto muda com frequência | `CREATE TYPE ... AS ENUM`; valores permitidos só em comentário |
 | Payload externo ou esparso | `jsonb` | `json`; `jsonb` para campo que é filtrado, juntado ou validado (vira coluna) |
 
+- Por que não `ENUM` (testado em PostgreSQL 18.6): remover valor não existe (`dropping an enum value is not implemented`); o caminho é recriar o tipo e **reescrever a tabela**. Com `CHECK`, troca-se a constraint por `NOT VALID` + `VALIDATE`, sem reescrita. E valor novo de enum não pode ser usado na mesma transação que o criou (`unsafe use of new value`). Renomear valor funciona nos dois.
 - `NOT NULL` por padrão. Nulável só quando a ausência tem significado.
 - Toda tabela tem `created_at timestamptz NOT NULL DEFAULT now()`. Tabela com `UPDATE` tem `updated_at`.
 
