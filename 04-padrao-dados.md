@@ -110,6 +110,7 @@ Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrut
 ### 3.8. Operação
 - `pg_stat_statements` em `shared_preload_libraries` desde o provisionamento (exige reinício; decidir depois custa uma janela).
 - `log_min_duration_statement` ligado; `idle_in_transaction_session_timeout` definido (transação aberta impede o vacuum).
+- Testado em PostgreSQL 18.6: sem preload, `CREATE EXTENSION pg_stat_statements` funciona mas a consulta falha (`must be loaded via "shared_preload_libraries"`); recarregar a configuração não basta, só o reinício. Com uma transação aberta, `VACUUM` depois de apagar 1 milhão de linhas deixou as 1 milhão de linhas mortas; fechada a transação, zero.
 - Backup agendado (`pg_dump` ou snapshot) com **cópia fora da máquina do banco**, cifrada. Backup só no mesmo host não conta.
 - Falha de backup alerta. Backup pulado em silêncio é falha.
 
