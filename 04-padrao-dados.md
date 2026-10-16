@@ -195,7 +195,9 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 | Tabela de histórico/auditoria por entidade (append-only, `UPDATE`/`DELETE` bloqueados) | Exigência regulatória ou contratual de auditoria, ou incidente "quem mudou isto" registrado. |
 | Cifragem de coluna na aplicação (AES-256-GCM, chave fora do banco) | Coluna com documento de identificação ou dado pessoal sensível (LGPD art. 5º, II: origem racial ou étnica, religião, opinião política, saúde, vida sexual, dado genético ou biométrico). CPF não é dado sensível na lei; cifrá-lo é escolha do Labs. |
 | Ferramenta de migração sem parada (`pgroll`) | Serviço que não aceita janela de deploy. |
-| Réplica / standby quente | RTO que a restauração (§4.3) comprovadamente não cumpre. |
+| Réplica de leitura (hot standby servindo consultas só-leitura) | CPU ou I/O do primário saturado por leitura, medido. |
+| Standby em **outro host**, promoção manual (`pg_promote()`) | Tempo de restauração medido no ensaio (§4.3) acima do RTO escrito. Standby no mesmo host não conta: cai junto. Replicação assíncrona pode perder as últimas transações na promoção; síncrona não perde, mas todo commit espera o standby. |
+| Failover automático (Patroni ou similar, consenso em 3+ nós) | RTO de minutos fora do horário em que há alguém para promover. O PostgreSQL não detecta falha do primário nem promove sozinho (documentação do PostgreSQL 18, *Failover*); é sempre ferramenta externa. |
 | Schema ou banco por tenant | Exigência contratual de isolamento físico. |
 | Verificação de deriva noturna contra produção | Incidente de deriva registrado. |
 | Banco vetorial dedicado (Qdrant ou similar) | Latência de busca medida acima do orçamento com `hnsw` ajustado, ou índice que não cabe na memória da instância. |
