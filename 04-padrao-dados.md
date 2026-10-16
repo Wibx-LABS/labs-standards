@@ -180,6 +180,8 @@ Implementação de referência: `wibx-maestro/environments · bin/arquivo-db` (`
 - Inchaço de tabela e índice; autovacuum ajustado por tabela, não globalmente.
 - Papel `readonly` para consulta e análise; ninguém consulta produção com o papel da aplicação.
 
+Trimestral venceu cadência menor: a revisão é análise humana, não verificação automática, e índice "sem uso" só significa algo depois de um ciclo de negócio completo de estatística; cadência curta gera falso "sem uso".
+
 ---
 
 ## 5. Nível 2 — Por Gatilho
