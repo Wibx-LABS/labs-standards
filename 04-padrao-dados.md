@@ -50,6 +50,15 @@ Base de mercado: documentação do PostgreSQL 18, a página *Don't Do This* do w
 - **Autorização nunca depende do identificador ser impossível de adivinhar** (RFC 9562 §8). ID que sai para fora é público.
 - Ordem de v7 não é sequência: não substitui `created_at` nem contador.
 
+Medição de referência (PostgreSQL 18.6, 2 milhões de linhas, inserção em lote; duas execuções em ordem inversa):
+
+| Chave | Índice da PK | Inserção | Fragmentação do índice |
+| :--- | :--- | :--- | :--- |
+| `bigint` identity | 43 MB | 8 s | 0% |
+| `uuid` v7 | 60 MB | 12 s | 0% |
+| `uuid` v4 | 76 MB | 20–22 s | 50% |
+| `text` com UUID v4 | 145 MB | 20–27 s | 50% |
+
 ### 3.2. Tipos
 | Uso | Tipo | Proibido |
 | :--- | :--- | :--- |
