@@ -74,7 +74,7 @@ Medição de referência (PostgreSQL 18.6, 2 milhões de linhas, inserção em l
 
 ### 3.3. Nomes
 - `snake_case` minúsculo, sem aspas. Nome entre aspas (`"applicationId"`) é proibido.
-- Projeto novo: tabelas em **inglês, no plural** (`orders`, `doc_versions`); colunas no singular. Projeto existente mantém a convenção que já tem (o recybacks segue em português, singular) — um projeto, uma convenção, sem mistura dentro dele.
+- Projeto novo: tabelas em **inglês, no plural** (`orders`, `doc_versions`); colunas no singular. Projeto existente mantém a convenção que já tem (o recybacks segue em português, singular) — um projeto, uma convenção, sem mistura dentro dele. Inglês no plural venceu português no singular: é a convenção da maioria dos schemas do Labs (maestro, support_bot, WBCS) e a dos exemplos do próprio PostgreSQL; a escolha é de convenção, não de evidência técnica.
 - FK: `<entidade>_id`. Constraints e índices: `<tabela>_<colunas>_{pkey,fkey,key,check,idx}`, que é o padrão que o próprio PostgreSQL gera.
 
 ### 3.4. Integridade
