@@ -32,7 +32,11 @@ Base de mercado: documentação do PostgreSQL 18, a página *Don't Do This* do w
 | **1** | Mesmo gatilho da Norma 01 §2. | §4 |
 | **2** | Item a item, quando o gatilho da tabela §5 for observado e registrado. | §5 |
 
-**Projetos existentes:** as regras valem para **tabela e coluna novas**. Tabela existente não é migrada só para conformidade; converte quando for tocada por outro motivo. Exceção: §3.6 (credenciais e papéis) e §3.8 (backup) valem já.
+**Projetos existentes.** Critério: **segurança e perda de dado valem já; eficiência vale para tabela nova.**
+- Valem já, inclusive em tabela existente: §3.6 (credenciais e papéis), §3.8 (backup) e, no Nível 1, `FORCE ROW LEVEL SECURITY` (§4.1).
+- O resto vale para **tabela e coluna novas**. Tabela existente não é migrada só para conformidade; converte quando for tocada por outro motivo.
+
+`FORCE` está entre as imediatas porque o risco é de isolamento e o custo é mínimo. Teste em PostgreSQL 17.11 com 2 milhões de linhas em dois tenants: sem `FORCE`, o dono da tabela leu as linhas do outro tenant; com `FORCE`, não. O `ALTER TABLE ... FORCE ROW LEVEL SECURITY` levou 0,4 ms e não reescreveu a tabela. A migração usa `lock_timeout` (§3.5).
 
 ---
 
