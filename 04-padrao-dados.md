@@ -156,7 +156,8 @@ Vale para todo serviço que guarda dado de mais de um *whitelabel*.
 Implementação de referência: `wibx-recybacks/recybacks · packages/db.comTenant`.
 
 ### 4.2. Migrações
-- `squawk` no CI sobre toda migração nova. Exceção a uma regra é anotada no próprio arquivo, com motivo.
+- `squawk` no CI sobre toda migração nova. Exceção a uma regra é anotada no próprio arquivo, com motivo. Prisma e drizzle-kit geram `.sql`; o lint roda sobre o gerado.
+- `squawk` venceu Atlas (`migrate lint`): squawk lê `.sql` puro, sem banco, licença Apache-2.0; o `migrate lint` do Atlas é só Atlas Pro (pago, exige `atlas login`) e precisa de banco de desenvolvimento (`--dev-url`) para simular as migrações.
 - Toda migração é ensaiada contra cópia restaurada de produção antes de QA (Norma 01 §4.4, passo 3).
 - Verificação de deriva: o schema obtido aplicando as migrações do zero é comparado ao de QA/PROD (`pg_dump --schema-only`). Diferença reprova.
 
