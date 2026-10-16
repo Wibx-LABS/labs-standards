@@ -209,7 +209,7 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 
 ## 6. Exceções
 
-- **`wibx-master-console`:** fork do Dokploy; segue as convenções de schema do upstream para não divergir dele. §3.6 (credenciais) e §3.8 (backup) valem integralmente.
+- **`wibx-master-console`:** fork do Dokploy; segue as convenções de schema do upstream para não divergir dele. Valem integralmente §3.6 (credenciais), §3.8 (backup) e §3.5 item 7 (`db:push`, `db:truncate` e equivalentes proibidos em produção), pelo critério de §2: segurança e perda de dado. Isenção venceu conformidade: conformar exigiria divergir do upstream em 175 migrações, e cada atualização do Dokploy viraria conflito.
 - Repositório que só lê banco alheio (consultas, análise de legado) não tem schema próprio e não cumpre §3.1–§3.5.
 
 ---
