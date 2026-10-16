@@ -148,7 +148,7 @@ Medição de referência (sintética, 10.000 chunks de 1024 dimensões, PostgreS
 Vale para todo serviço que guarda dado de mais de um *whitelabel*.
 - Coluna de tenant `wlc` em toda tabela de tenant; índices começam por `wlc`.
 - `ENABLE ROW LEVEL SECURITY` **e `FORCE ROW LEVEL SECURITY`**. Sem `FORCE`, o dono da tabela ignora as políticas.
-- Tenant entra por **um único ponto** de código, dentro de transação: `set_config('app.wlc', $1, true)`. O `true` limita à transação; `SET` de sessão vaza tenant entre conexões do pool.
+- **O tenant vive só dentro da transação, nunca na sessão.** Conexão de pool é reutilizada por outra requisição; tenant gravado na sessão vaza para ela, sem erro. Entra por **um único ponto** de código. No PostgreSQL: `set_config('app.wlc', $1, true)` — com `true`, o valor vale só na transação corrente; com `false` ou `SET`, vale até o fim da sessão (documentação do PostgreSQL 18, `set_config`).
 - Política falha fechada: sem `app.wlc` definido, zero linhas ou erro.
 - Teste de RLS roda **como o papel da aplicação**. Rodar como dono ou superusuário passa sem testar nada.
 - Política lê só colunas da própria linha; subconsulta em outra tabela dentro de política é lenta e sujeita a corrida.
