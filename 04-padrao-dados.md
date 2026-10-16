@@ -105,6 +105,26 @@ Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrut
 - Dado pessoal fica em colunas próprias, em poucas tabelas. Evento e histórico referenciam o titular por `<titular>_id`, não copiam nome, CPF ou e-mail. Dado pessoal fora de texto livre, `jsonb` de log e mensagem de erro.
 - Remoção de dado pessoal é `DELETE`. `deleted_at` só quando o negócio exige desfazer — e então com expurgo agendado.
 
+### 3.10. Vetores (Embeddings)
+- Vetor mora no PostgreSQL, na mesma transação, RLS e backup do dado de origem. Banco vetorial dedicado é Nível 2 (§5).
+- Tipo **`vector(n)`** (`pgvector`) e similaridade calculada **no banco** (`ORDER BY embedding <=> $1 LIMIT k`). Vetor em `jsonb` com cosseno calculado na aplicação é proibido em tabela nova: medido, ocupa ~1,9× o disco, trafega o vetor inteiro por linha candidata e é ~30× mais lento já com 200 candidatos.
+- Busca sem filtro prévio (acervo inteiro) usa índice **`hnsw`**. Com filtro seletivo (documento, tenant), índice B-tree na coluna do filtro e cálculo exato basta.
+- Toda linha com vetor carrega a **impressão digital do modelo** (modelo + dimensão). Vetores de impressões diferentes nunca são comparados. Troca de modelo é expandir/contrair: coluna nova, reembedding em lotes, troca de leitura, remoção.
+- Janela de candidatos limitada (`LIMIT`, intervalo de tempo) é decisão de produto, não de desempenho: o que fica fora da janela não é encontrado. Escrever o limite e o motivo.
+
+Medição de referência (sintética, 10.000 chunks de 1024 dimensões, PostgreSQL 17 + pgvector):
+
+| | `jsonb` + cosseno na aplicação | `vector(1024)` no banco |
+| :--- | :--- | :--- |
+| Disco por linha | 7.655 B | 4.100 B |
+| Busca em 1 documento (200 chunks) | 39 ms | 1,2 ms (exato) |
+| Busca no acervo (10.000 chunks) | 1,9–2,3 s | 33–35 ms (`hnsw`) |
+
+### 3.11. Grafos
+- Relação em grafo (hierarquia, dependência, linhagem) é **tabela de arestas** (`origem_id`, `destino_id`, `tipo`) com índice nas duas pontas e FK para os nós.
+- Travessia por `WITH RECURSIVE` com **limite de profundidade** explícito e proteção contra ciclo (`CYCLE`, PostgreSQL 14+).
+- Banco de grafo é Nível 2 (§5).
+
 ---
 
 ## 4. Nível 1 — Produção TI
@@ -159,6 +179,9 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 | Réplica / standby quente | RTO que a restauração (§4.3) comprovadamente não cumpre. |
 | Schema ou banco por tenant | Exigência contratual de isolamento físico. |
 | Verificação de deriva noturna contra produção | Incidente de deriva registrado. |
+| Banco vetorial dedicado (Qdrant ou similar) | Latência de busca medida acima do orçamento com `hnsw` ajustado, ou índice que não cabe na memória da instância. |
+| Apache AGE (grafo dentro do PostgreSQL) | Consulta de muitos saltos ou padrão de caminho no caminho quente, medida lenta com `WITH RECURSIVE` indexado. |
+| Banco de grafo dedicado (Neo4j) | Apache AGE comprovadamente insuficiente. Serviço novo: backup, segredo e migração próprios. |
 
 ---
 
@@ -182,6 +205,8 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 - [ ] Testes contra PostgreSQL real; nenhum dado de produção em DEV.
 - [ ] `pg_stat_statements` e log de consulta lenta; backup com cópia fora do host e alerta de falha.
 - [ ] Tabelas com dado pessoal declaradas (`pii:`).
+- [ ] Vetor em `vector(n)` com similaridade no banco e impressão digital do modelo por linha; `hnsw` em busca sem filtro.
+- [ ] Grafo em tabela de arestas indexada; `WITH RECURSIVE` com limite de profundidade.
 
 **Nível 1** — além do Nível 0:
 - [ ] RLS com `FORCE`, tenant por `set_config(..., true)` em ponto único, testes como papel da aplicação.
