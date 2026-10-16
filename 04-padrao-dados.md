@@ -87,7 +87,7 @@ Medição de referência (PostgreSQL 18.6, 2 milhões de linhas, inserção em l
 3. **Destrutiva é marcada.** Migração com `DROP`, `TRUNCATE`, `RENAME` ou `DELETE` começa com `-- destrutiva: <motivo>`; teste reprova a falta do marcador.
 4. **CI aplica todas do zero**, na mesma versão maior do PostgreSQL de produção.
 5. **Sem travar o tráfego:**
-   - `SET lock_timeout = '5s'` no início da migração; falhou, tenta de novo.
+   - `SET lock_timeout = '2s'` no início da migração; falhou, tenta de novo. Migração esperando lock enfileira **todas** as consultas que chegam depois, mesmo as que não conflitam com quem segura o lock. O valor de `lock_timeout` é o tempo máximo de parada de todo o tráfego da tabela por tentativa. Testado em PostgreSQL 18.6: sem `lock_timeout`, um `SELECT` instantâneo esperou 6,1 s atrás de uma migração enfileirada; com `2s`, a migração desistiu e o `SELECT` seguiu em 1,5 s. 2 s venceu 5 s: parada ocasional de 2 s é tolerável, 5 s em tabela quente vira timeout para o usuário; o custo é mais tentativas em tabela movimentada.
    - Índice: `CREATE INDEX CONCURRENTLY` / `DROP INDEX CONCURRENTLY`, em migração fora de transação.
    - FK e `CHECK` em tabela existente: `ADD CONSTRAINT ... NOT VALID`, depois `VALIDATE CONSTRAINT`.
    - `SET NOT NULL` em tabela existente: `CHECK (col IS NOT NULL) NOT VALID` → `VALIDATE` → `SET NOT NULL`.
