@@ -115,7 +115,7 @@ Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrut
 - Falha de backup alerta. Backup pulado em silêncio é falha.
 
 ### 3.9. Dados Pessoais
-> **Pendente de revisão jurídica.** Os artigos citados são da Lei 13.709/2018 (LGPD) e não passaram por leitura jurídica.
+> **Pendente de revisão jurídica.** Os artigos citados são da Lei 13.709/2018 (LGPD), conferidos com o texto compilado do Planalto em outubro de 2026; a interpretação não passou por leitura jurídica.
 - Tabela com dado pessoal declara isso no banco: `COMMENT ON TABLE <t> IS 'pii: <colunas>'`. A declaração é verificável por script.
 - Dado pessoal fica em colunas próprias, em poucas tabelas. Evento e histórico referenciam o titular por `<titular>_id`, não copiam nome, CPF ou e-mail. Dado pessoal fora de texto livre, `jsonb` de log e mensagem de erro.
 - Remoção de dado pessoal é `DELETE`. `deleted_at` só quando o negócio exige desfazer — e então com expurgo agendado.
@@ -169,8 +169,8 @@ Implementação de referência: `wibx-recybacks/recybacks · packages/db.comTena
 ### 4.4. Dados Pessoais
 > **Pendente de revisão jurídica.**
 - Toda tabela com `pii:` (§3.9) tem prazo de retenção escrito e job de expurgo. O prazo é fato jurídico ou contratual; a norma não inventa número, exige que exista.
-- Runbook de eliminação a pedido do titular (LGPD art. 18, VI): onde o dado está, como apagar, o que fica e por quê (obrigação legal).
-- O dado apagado sobrevive no backup até a expiração dele. O prazo de expiração do backup é publicado na política; eliminação instantânea não é prometida.
+- Runbook de eliminação a pedido do titular: onde o dado está, como apagar, o que fica e por quê. Base: art. 18, IV (dado desnecessário, excessivo ou em desconformidade) e VI (dado tratado com consentimento); o que fica, só nas hipóteses do art. 16 (por exemplo, obrigação legal, inciso I).
+- O dado apagado sobrevive no backup até a expiração dele. O prazo de expiração do backup é publicado na política; eliminação instantânea não é prometida. A lei não trata de backup; apoiar isto em "limites técnicos" (art. 16, caput) é interpretação a validar.
 
 ### 4.5. Revisão Trimestral
 - Consultas mais caras (`pg_stat_statements`).
@@ -189,7 +189,7 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 | Particionamento (por tempo, com expurgo por `DETACH`/`DROP` de partição) | Expurgo por `DELETE` que demora ou trava, ou tabela que domina o uso da instância. |
 | Pooler externo (pgbouncer) | Esgotamento de conexões observado. Em modo transação, só `set_config(..., true)`; `SET` de sessão e advisory lock de sessão quebram. |
 | Tabela de histórico/auditoria por entidade (append-only, `UPDATE`/`DELETE` bloqueados) | Exigência regulatória ou contratual de auditoria, ou incidente "quem mudou isto" registrado. |
-| Cifragem de coluna na aplicação (AES-256-GCM, chave fora do banco) | Coluna com documento de identificação ou dado pessoal sensível (LGPD art. 5º, II). |
+| Cifragem de coluna na aplicação (AES-256-GCM, chave fora do banco) | Coluna com documento de identificação ou dado pessoal sensível (LGPD art. 5º, II: origem racial ou étnica, religião, opinião política, saúde, vida sexual, dado genético ou biométrico). CPF não é dado sensível na lei; cifrá-lo é escolha do Labs. |
 | Ferramenta de migração sem parada (`pgroll`) | Serviço que não aceita janela de deploy. |
 | Réplica / standby quente | RTO que a restauração (§4.3) comprovadamente não cumpre. |
 | Schema ou banco por tenant | Exigência contratual de isolamento físico. |
