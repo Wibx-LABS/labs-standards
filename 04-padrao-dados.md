@@ -163,7 +163,9 @@ Implementação de referência: `wibx-recybacks/recybacks · packages/db.comTena
 ### 4.3. Backup e Recuperação
 - Arquivamento contínuo de WAL com backup base (`wal-g` ou `pgBackRest`) em armazenamento fora do host, cifrado, com a chave guardada separada do backup.
 - **RPO e RTO escritos** por serviço.
-- **Ensaio de restauração trimestral**, terminando em verificação da aplicação (sonda de §3.8 da Norma 01 contra o banco restaurado), com tempo medido contra o RTO.
+- **Ensaio de restauração com no máximo 7 dias**, terminando em verificação da aplicação (sonda de §3.8 da Norma 01 contra o banco restaurado), com tempo medido contra o RTO. A idade do último ensaio verde é conferida no deploy (passou de 7 dias, ensaia antes de aplicar) e **alerta** quando passa de 7 dias mesmo sem deploy. 7 dias venceu trimestral: ensaio automatizado custa o mesmo em qualquer cadência, e ensaio manual trimestral é o que se pula.
+
+Implementação de referência: `wibx-maestro/environments · bin/arquivo-db` (`ensaio` e `idade`). O alerta sem deploy ainda não existe lá.
 - Backup antes de migração em QA e PROD (Norma 01 §6).
 
 ### 4.4. Dados Pessoais
@@ -226,6 +228,6 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 **Nível 1** — além do Nível 0:
 - [ ] RLS com `FORCE`, tenant por `set_config(..., true)` em ponto único, testes como papel da aplicação.
 - [ ] `squawk` no CI; ensaio de migração em cópia restaurada; verificação de deriva.
-- [ ] WAL contínuo fora do host; RPO/RTO escritos; ensaio de restauração trimestral.
+- [ ] WAL contínuo fora do host; RPO/RTO escritos; ensaio de restauração com no máximo 7 dias, com alerta de idade.
 - [ ] Retenção e expurgo por tabela `pii:`; runbook de eliminação.
 - [ ] Revisão trimestral de consultas, índices e inchaço; papel `readonly`.
