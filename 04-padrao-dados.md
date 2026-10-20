@@ -8,7 +8,7 @@
 
 Como o Labs faz bancos **bem estruturados, eficientes, robustos, seguros e sem ponto único de falha**. Escopo: **PostgreSQL**, o armazenamento padrão da Norma 01 §3.2. Segue os níveis da Norma 01: cada regra é marcada **[0]** (todo projeto) ou **[1]** (mesmo gatilho do Nível 1 da Norma 01); o Nível 2 entra por gatilho registrado (§6).
 
-A norma governa o resultado, não a ferramenta: qualquer migrador serve, desde que cumpra §3. Os testes e fontes que sustentam cada regra estão na PR que introduziu esta norma.
+A norma governa o resultado, não a ferramenta: qualquer migrador serve, desde que cumpra §3. Exceção única: a ferramenta de consulta para quem não é de engenharia (§4, Acesso de Consulta), porque uma por projeto multiplica superfície exposta. Os testes e fontes que sustentam cada regra estão na PR que introduziu esta norma.
 
 **Projetos existentes.** Regra de schema (§1, §2) vale para tabela e coluna novas; tabela existente converte quando for tocada por outro motivo. Regra de segurança e de operação (§3 item 7, §4, §5) vale já.
 
@@ -82,6 +82,14 @@ Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrut
 - **[0]** Aplicação: papel próprio por serviço, só DML, sem posse de objeto, sem `SUPERUSER`, sem `BYPASSRLS`.
 - **[0]** String de conexão é segredo (Norma 01 §3.6). Proibido valor padrão de credencial no código.
 - **[1]** Papel `readonly` para consulta e análise; ninguém consulta produção com o papel da aplicação.
+
+### Acesso de Consulta
+- **[0]** Porta do banco nunca exposta na internet. Acesso humano só por túnel SSH ou VPN.
+- **[0]** Escrita humana em produção só por migração (§3). Proibido `INSERT`, `UPDATE` ou `DELETE` à mão, por cliente gráfico ou `psql`.
+- **[0]** Proibido ferramenta de banco hospedada por projeto (pgAdmin, Adminer, CloudBeaver): cada instância é mais um login guardando credencial de banco.
+- **[1]** Engenharia consulta com o papel `readonly`, pelo cliente que preferir. O cliente local não é padronizado: não cria superfície e não é verificável.
+- **[1]** Quem não é de engenharia consulta só pela **instância central de Metabase** do Labs, uma para todos os projetos.
+- **[1]** O Metabase conecta com papel `analytics`: o `readonly` sem as colunas declaradas em `pii:` (`GRANT SELECT (<colunas>)` ou view). Coluna nova não entra sozinha no grant; o recorte falha fechado. Havendo standby (§5), conecta nele, não no primário.
 
 ### Multi-Tenant
 - **[1]** Serviço com dado de mais de um *whitelabel*: coluna `wlc` em toda tabela de tenant, `ENABLE` **e `FORCE ROW LEVEL SECURITY`**. Sem `FORCE`, o dono da tabela ignora as políticas.
