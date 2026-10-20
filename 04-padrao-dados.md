@@ -87,7 +87,8 @@ Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrut
 - **[0]** Porta do banco nunca exposta na internet. Acesso humano só por túnel SSH ou VPN.
 - **[0]** Escrita humana em produção só por migração (§3). Proibido `INSERT`, `UPDATE` ou `DELETE` à mão, por cliente gráfico ou `psql`.
 - **[0]** Proibido ferramenta de banco hospedada por projeto (pgAdmin, Adminer, CloudBeaver): cada instância é mais um login guardando credencial de banco.
-- **[1]** Engenharia consulta com o papel `readonly`, pelo cliente que preferir. O cliente local não é padronizado: não cria superfície e não é verificável.
+- **[1]** Engenharia consulta com o papel `readonly`, pelo túnel. Cliente recomendado: **DBeaver Community**. Outro cliente local é permitido: não cria superfície exposta.
+- **[1]** Agente consulta pelo MCP de Postgres com o papel `readonly`, declarado no `.mcp.json` do repositório. A string de conexão vem do ambiente, nunca do arquivo.
 - **[1]** Quem não é de engenharia consulta só pela **instância central de Metabase** do Labs, uma para todos os projetos.
 - **[1]** O Metabase conecta com papel `analytics`: o `readonly` sem as colunas declaradas em `pii:` (`GRANT SELECT (<colunas>)` ou view). Coluna nova não entra sozinha no grant; o recorte falha fechado. Havendo standby (§5), conecta nele, não no primário.
 
