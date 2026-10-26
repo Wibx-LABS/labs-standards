@@ -76,6 +76,11 @@ Todo serviço em `compose.yml` declara:
 
 ---
 
+### 3.10. Idioma
+- Nome em **inglês**: código, serviço, contêiner, binário, variável de ambiente, chave de configuração, tabela e coluna, campo de log.
+- Texto em **pt-br**: documentação, README, CLAUDE.md, PR e comentário.
+- Vale para nome novo. Nome antigo em português muda só quando a peça já estiver sendo mexida por outro motivo; sem renomeação em massa.
+
 ## 4. Nível 1 — Produção Mantida por TI ou Voltada a Usuários Finais
 
 ### 4.1. Matriz de Ambientes
@@ -143,6 +148,7 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 - [ ] CI com build e testes `exit 0`; actions pinadas por SHA de 40 hex.
 - [ ] `/healthz` e uma sonda sintética por fluxo crítico.
 - [ ] `LICENSE` proprietário na raiz; manifestos com `"private": true` e `"license": "UNLICENSED"`.
+- [ ] Nome novo em inglês; documentação, PR e comentário em pt-br.
 
 **Nível 1** — além do Nível 0:
 - [ ] Trio de manifestos e ambientes ENSAIO e QA.
