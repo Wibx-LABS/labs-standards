@@ -165,7 +165,7 @@ Todo repositório Labs pertence exclusivamente à **WIBX Company**.
 
 1. **`LICENSE` na raiz:** proprietário, declara a titularidade da WIBX Company e veda cópia, redistribuição, engenharia reversa e uso não autorizado.
 2. **Pacotes privados:** `"private": true` e `"license": "UNLICENSED"` (ou equivalente do ecossistema).
-3. **Sem cabeçalho de copyright por arquivo.** O `LICENSE` cobre o repositório.
+3. **Cabeçalho de copyright por arquivo é opcional.** O `LICENSE` cobre o repositório. Projeto que já tem o cabeçalho, inclusive imposto por lint, mantém; não há remoção em massa.
 4. **Entidade única:** o código pertence à `WIBX Company`. Razões sociais específicas ficam restritas a contratos, Termos de Uso e documentos fiscais.
 5. **Sem autoria individual:** proibido `@author`, nome ou e-mail de desenvolvedor no código. O histórico do Git é a fonte de autoria.
 6. **Comentários de domínio:** TSDoc/Godoc explicam o **porquê** — regra de negócio, invariante de segurança, contrato de API. Sem narrativa de histórico ("alterado por X").
