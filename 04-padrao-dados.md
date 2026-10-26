@@ -10,7 +10,7 @@ Como o Labs faz bancos **bem estruturados, eficientes, robustos, seguros e sem p
 
 A norma governa o resultado, não a ferramenta: qualquer migrador serve, desde que cumpra §3. Exceção única: a ferramenta de consulta para quem não é de engenharia (§4, Acesso de Consulta), porque uma por projeto multiplica superfície exposta. Os testes e fontes que sustentam cada regra estão na PR que introduziu esta norma.
 
-**Projetos existentes.** Regra de schema (§1, §2) vale para tabela e coluna novas; tabela existente converte quando for tocada por outro motivo. Regra de segurança e de operação (§3 item 7, §4, §5) vale já.
+**Projetos existentes.** Regra de schema (§1, §2) vale para tabela e coluna novas; tabela existente converte quando for tocada por outro motivo. Regra de segurança e de operação (§3 item 8, §4, §5) vale já.
 
 ---
 
@@ -57,21 +57,23 @@ A norma governa o resultado, não a ferramenta: qualquer migrador serve, desde q
 
 ## 3. Robusto
 
-1. **[0]** Migração só para frente: `NNNN_nome.sql`, sem `down`. Desfazer passo destrutivo é restauração.
+1. **[0]** Migração só para frente, sem `down`. Desfazer passo destrutivo é restauração. Migração nova se chama `AAAAMMDDTHHMM_nome.sql` (data e hora UTC) e ordena depois de toda migração que a `main` já tem na pasta; o CI do PR reprova nome fora do padrão e ordem anterior. Numeração sequencial deixa duas branches criarem o mesmo número, e as duas rodam em ordem de nome. Arquivo antigo `NNNN_nome.sql` fica como está.
 2. **[0]** Migração aplicada é imutável; teste reprova alteração em migração existente na `main`.
-3. **[0]** Migração destrutiva (`DROP`, `TRUNCATE`, `RENAME`, `DELETE`) começa com `-- destrutiva: <motivo>`; teste reprova a falta.
-4. **[0]** CI aplica todas as migrações do zero, na versão maior do PostgreSQL de produção, e roda os testes contra PostgreSQL real. Sem SQLite, sem mock de banco.
-5. **[0]** Sem travar o tráfego:
+3. **[0]** Migração destrutiva começa com `-- destrutiva: <motivo>` na primeira linha. Destrutiva: `DROP` de tabela, coluna, schema ou sequência, `DROP ... CASCADE`, `TRUNCATE`, `RENAME`, `DELETE`, `UPDATE` de dado, `SET NOT NULL` e troca de tipo. O CI do PR do repo dono da migração reprova a falta, antes de ela ficar imutável.
+4. **[0]** Promoção com destrutiva pendente pede aval explícito. O ensaio conta as linhas que somem, por tabela, e mostra no run; o aval vem num disparo seguinte, depois de lidas. Destrutiva sai numa release própria, depois que o código que deixou de usar o dado já rodou em QA (expandir/contrair, item 6).
+5. **[0]** CI aplica todas as migrações do zero, na versão maior do PostgreSQL de produção, e roda os testes contra PostgreSQL real. Sem SQLite, sem mock de banco.
+6. **[0]** Sem travar o tráfego:
    - `SET lock_timeout = '2s'` no início; falhou, tenta de novo. Migração esperando lock bloqueia todas as consultas que chegam depois.
    - Índice com `CONCURRENTLY`, fora de transação.
    - FK, `CHECK` e `SET NOT NULL` em tabela existente: `NOT VALID`, depois `VALIDATE`.
    - Renomear, trocar tipo ou remover coluna em uso: expandir/contrair, em duas versões.
-6. **[0]** Backfill em lotes, fora da migração de DDL.
-7. **[0]** Proibido em produção: `db push`, sincronização de schema sem arquivo de migração, comando que dropa schema.
-8. **[1]** `squawk` no CI sobre toda migração nova; exceção anotada no arquivo, com motivo.
-9. **[1]** Migração ensaiada contra cópia restaurada de produção antes de QA (Norma 01 §4.4).
+7. **[0]** Backfill em lotes, fora da migração de DDL.
+8. **[0]** Proibido em produção: `db push`, sincronização de schema sem arquivo de migração, comando que dropa schema.
+9. **[1]** `squawk` no CI sobre toda migração nova; exceção anotada no arquivo, com motivo.
+10. **[1]** Migração ensaiada contra cópia restaurada de produção antes de QA (Norma 01 §4.4).
+11. **[1]** A volta é testada: o pré-voo sobe a release anterior sobre o banco que a candidata migrou e roda o mesmo smoke. Se a candidata não subir em QA, a anterior volta sobre o schema novo; falhou no pré-voo, não promove.
 
-Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrutivasTemMarcador` e `db.TestBaselineIgualAoHistorico`.
+Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrutivasTemMarcador` e `db.TestBaselineIgualAoHistorico`; `wibx-maestro/devkit · migrations-lint` (itens 1 a 3 no PR); `wibx-maestro/environments · bin/ensaio-migration` e `bin/gate` (itens 4, 10 e 11).
 
 ---
 
@@ -143,5 +145,5 @@ Cada item entra quando o gatilho for observado e registrado no projeto.
 
 ## 7. Exceções
 
-- **`wibx-master-console`:** fork do Dokploy; segue as convenções de schema do upstream (§1, §2). §3 item 7, §4 e §5 valem integralmente.
+- **`wibx-master-console`:** fork do Dokploy; segue as convenções de schema do upstream (§1, §2). §3 item 8, §4 e §5 valem integralmente.
 - Repositório que só lê banco alheio não tem schema próprio e não cumpre §1–§3.
