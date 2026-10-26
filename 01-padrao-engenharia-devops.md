@@ -33,6 +33,7 @@ Como o Labs estrutura, empacota, promove e mantém software. A norma é dividida
 
 ### 3.1. Runtime
 - Linguagens permitidas: **Go** e **TypeScript (Node.js)**. Nenhuma outra.
+- Exceção: ferramenta que roda só no CI ou no runner de deploy (lint, conformidade, prova de origem) pode ser **Python**, desde que não rode em produção nem toque dado de cliente.
 - **Um runtime por projeto.** UI, integração com LLM e jobs leves: TypeScript. Engine, CLI ou daemon de domínio: Go.
 - Go não renderiza UI nem faz SSR. Segundo runtime no mesmo projeto só por gatilho de §5.
 
@@ -134,7 +135,7 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 ## 6. Checklist de Conformidade (Definition of Done de Infraestrutura)
 
 **Nível 0**
-- [ ] Um runtime (Go ou TypeScript); segundo só com gatilho registrado.
+- [ ] Um runtime (Go ou TypeScript); segundo só com gatilho registrado. Python só em ferramenta de CI/deploy (§3.1).
 - [ ] Dockerfile derivado dos templates; usuário não-root; credenciais de build só via BuildKit secret.
 - [ ] Toda imagem em manifesto por `@sha256`.
 - [ ] Todo serviço com `healthcheck`, `limits.memory`, `init: true` e limite de heap.
