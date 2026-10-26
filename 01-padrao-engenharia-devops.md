@@ -98,11 +98,14 @@ docker compose -f compose.yml -f <env>/override.yaml -f <env>/release.yaml confi
 ### 4.3. Proveniência
 - CI publica no GHCR e gera atestação com `actions/attest-build-provenance` (`push-to-registry: true`).
 - O deploy verifica antes de aplicar: `gh attestation verify oci://<imagem>@sha256:<hash> --owner <org>`. Falha na verificação aborta o deploy.
+- **Org no plano Free com repositório privado:** atestação não está disponível (exige Enterprise Cloud). Vale implementação própria com a mesma garantia: prova assinada pelo GitHub, amarrada ao digest, ao repositório de origem e à `main`, conferida antes de aplicar; falha aborta o deploy.
 
 ### 4.4. Promoção
 Nenhum workflow tem escrita direta na `main` de repositórios de ambiente.
 
-Implementação de referência: [`wibx-maestro/environments`](https://github.com/wibx-maestro/environments) (`bin/resolve`, `checa`, `gate`, `aplica`, `vigia-runner`). Ela ainda usa `bin/prova` e `bin/autoriza`; a troca pelos recursos nativos de §4.3 e §4.4 está pendente.
+Implementação de referência: [`wibx-maestro/environments`](https://github.com/wibx-maestro/environments) (`bin/resolve`, `checa`, `gate`, `aplica`, `vigia-runner`). A org está no plano Free: a atestação de §4.3 é o `bin/prova` e a autorização do item 4 é o `bin/autoriza`.
+
+**Org no plano Free com repositório privado:** GitHub Environments não está disponível (exige Team ou Pro). Vale implementação própria com a mesma garantia, só humano autorizado libera a aplicação: o disparo é manual e só segue se quem disparou está no time autorizado e tem escrita no repositório na hora, conferido no runner dedicado; falha aborta sem tocar o ambiente.
 1. **Resolução (`bin/resolve`):** imagens candidatas viram digests e CalVer em `qa/release.yaml`.
 2. **PR humano:** revisão e checks (`bin/checa`). `CODEOWNERS` cobre os manifestos de ambiente.
 3. **Pré-voo (`para=ensaio`):** `bin/gate` sobe o cluster efêmero, roda migrações e testa `/healthz`. Falha aborta sem tocar QA.
@@ -146,9 +149,9 @@ Cada item entra quando o gatilho for observado e registrado no projeto. Sem regi
 
 **Nível 1** — além do Nível 0:
 - [ ] Trio de manifestos e ambientes ENSAIO e QA.
-- [ ] Atestação `attest-build-provenance` verificada no deploy.
+- [ ] Atestação `attest-build-provenance` verificada no deploy (plano Free: prova própria, §4.3).
 - [ ] Deploy aprovado no ENSAIO (`bin/gate`) antes de QA.
-- [ ] GitHub Environments `qa` e `prod` com revisores obrigatórios; `CODEOWNERS` nos manifestos.
+- [ ] GitHub Environments `qa` e `prod` com revisores obrigatórios (plano Free: autorização própria, §4.4); `CODEOWNERS` nos manifestos.
 - [ ] Backup antes de migração em QA e PROD.
 
 ---
