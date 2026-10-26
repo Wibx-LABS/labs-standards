@@ -78,7 +78,7 @@ Implementação de referência: `wibx-maestro/engine · db.TestMigrationsDestrut
 ## 4. Seguro
 
 ### Papéis e Credenciais
-- **[0]** Dono dos objetos: papel `NOLOGIN`, usado só pelo migrador.
+- **[0]** Dono dos objetos: usado só pelo migrador. Papel `NOLOGIN`, ou com `LOGIN` desde que a credencial do dono só exista durante o deploy: decifrada em memória ou em arquivo temporário apagado ao sair, nunca em `.env` nem em contêiner que fica no ar.
 - **[0]** Aplicação: papel próprio por serviço, só DML, sem posse de objeto, sem `SUPERUSER`, sem `BYPASSRLS`.
 - **[0]** String de conexão é segredo (Norma 01 §3.6). Proibido valor padrão de credencial no código.
 - **[1]** Papel `readonly` para consulta e análise; ninguém consulta produção com o papel da aplicação.
