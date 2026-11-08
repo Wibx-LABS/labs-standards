@@ -56,22 +56,26 @@ Funcionalidade é uma **capacidade** que o produto entrega ("aprovar conteúdo",
 | `id`, `nome` | sim | identificador kebab-case e nome de produto |
 | `dominio` | sim | capacidade de negócio de nível 1 (lista fechada por sistema) |
 | `o_que_faz` | sim | visão de produto, uma a três frases |
-| `status` | sim | eixo backend (§4.3) |
-| `nota` | se não `ativo` | o que falta ou o que arma |
+| `maturity` | sim | maturidade do código (§4.3) |
+| `off_by_default` | não | `true` quando a funcionalidade `ready` nasce desligada; `nota` diz o que liga |
+| `inert` | não | `true` quando o código existe e nada o chama de propósito; exige o registro de código inerte |
+| `origin` | em `study` e `poc` | de onde vem a decisão, num documento que o time abre |
+| `nota` | fora de `ready` ligada no padrão | o que falta, o que liga ou o que arma |
 | `rotas` | não | rotas do contrato da borda; vazio = não exposto |
 | `disparos` | não | entradas fora da borda: worker, CLI, agente, evento |
-| `modulos` | sim | repos/componentes atravessados, em ordem, com símbolos |
+| `jobs` | não | jobs de fila que o fluxo enfileira fora da agenda |
+| `modulos` | com código (`building`, `ready`, `retired`) | repos/componentes atravessados, em ordem, com símbolos |
 | `tabelas` | não | `schema.tabela` lidas ou escritas |
 | `config`, `externos`, `testes` | não | flags, serviços de terceiros, testes do fluxo |
 
-### 4.3. Status: dois eixos
+### 4.3. Maturidade e borda: dois eixos do código
 
 Um status só mente: "pronto" no backend e invisível na API é o caso mais comum e o que mais confunde.
 
-- **Backend:** `ativo` (chamador real e ligado na config padrão), `inerte` (pronto e desligado de propósito, com registro do que o arma), `parcial` (falta peça; `nota` diz qual).
+- **Maturidade:** `study` (decidido estudar, sem código), `poc` (prova fora do fluxo do produto), `building` (código no repo, falta peça; `nota` diz qual), `ready` (fluxo inteiro com chamador real), `retired` (saiu de uso). Uma `ready` pode ser `off_by_default`: pronta, com a chave de liga/desliga desligada no padrão. Credencial não desliga.
 - **Borda:** exposto ou não, derivado de `rotas`. Não se escreve à mão.
 
-`ativo` descreve o código, não o ambiente. Saber se roda em QA ou produção é verificação em produção (Norma 01, §3.8), não catálogo.
+O estado num ambiente (ligada? funciona?) é opcional no catálogo. Quando existe, é **leitura automatizada e datada** do ambiente, gerada por script, nunca escrita à mão, e só com enum, data, número e identificador: texto do ambiente não entra. Funcionalidade sem medida aparece como "sem medida", nunca como ligada ou funcionando por suposição.
 
 ### 4.4. Impacto
 
@@ -82,7 +86,7 @@ A página gerada mostra, por funcionalidade, **módulos · tabelas · serviços 
 Script versionado no repo de documentação, com dois modos:
 
 - **CI do repo de docs:** schema válido e página gerada em dia.
-- **Workspace com todos os repos:** rota existe no contrato, toda rota do contrato tem dono, tabela tem `CREATE TABLE` numa migração, símbolo existe no repo citado, `inerte` está no registro de código inerte.
+- **Workspace com todos os repos:** rota existe no contrato, toda rota do contrato tem dono, tabela tem `CREATE TABLE` numa migração, símbolo existe no repo citado, `inert` está no registro de código inerte.
 
 Implementação de referência: `wibx-maestro/docs`, `funcionalidades/` e `tools/funcionalidades.py`.
 
